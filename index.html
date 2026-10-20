@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>月薪分配記帳本</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#EDF2EF;--sf:#fff;--ink:#12302A;--mute:#5B726B;--line:#D3DED9;--jade:#1D7A5F;--coral:#CF5A43;--sky:#3E6FA3;--on:#fff;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1B18;--sf:#172622;--ink:#E4EFEB;--mute:#93AAA2;--line:#2A3D38;--jade:#4CC29A;--coral:#F08A74;--sky:#7FA9DB;--on:#0F1B18;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1B18;--sf:#172622;--ink:#E4EFEB;--mute:#93AAA2;--line:#2A3D38;--jade:#4CC29A;--coral:#F08A74;--sky:#7FA9DB;--on:#0F1B18;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:680px;margin:0 auto;padding:16px 16px 72px}
+h1{font-size:20px;margin:0}h2{font-size:16px;margin:0 0 10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.mon{display:flex;align-items:center;gap:6px;font-weight:700}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--sf);border-radius:8px;padding:6px 12px}
+button.p{background:var(--jade);color:var(--on);border-color:var(--jade);font-weight:500}
+button.x{border:0;background:none;color:var(--coral);padding:4px 8px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+input,select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px;min-width:0;width:100%}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px}
+nav button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px;color:var(--mute)}
+nav button[aria-selected="true"]{color:var(--ink);border-color:var(--jade);font-weight:700}
+.box{background:var(--sf);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.alert{background:var(--sf);border:1px solid var(--coral);border-left-width:6px;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.big{font-size:34px;font-weight:700;line-height:1.2}
+.big.neg{color:var(--coral)}
+.mute{color:var(--mute);font-size:14px}
+.bar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);margin:10px 0 6px}
+.bar i{display:block;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px}
+.leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border:0}
+.row span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+.prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--jade)}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:3px}
+.tx{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.tx .d{flex:1;min-width:0}.tx .d small{display:block;color:var(--mute)}
+.tx .a{font-variant-numeric:tabular-nums;font-weight:500}
+.pie{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.pie svg{width:150px;height:150px;flex:none}.pie .leg{flex:1;min-width:180px;flex-direction:column}.hide{display:none}
+@media (max-width:420px){.big{font-size:28px}}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <h1>月薪分配記帳本</h1>
+  <div class="mon"><button id="pm" aria-label="上個月">‹</button><span id="ml"></span><button id="nm" aria-label="下個月">›</button></div>
+</div>
+<div id="alerts"></div>
+<nav role="tablist">
+  <button role="tab" data-t="home" aria-selected="true">總覽</button>
+  <button role="tab" data-t="log" aria-selected="false">記帳</button>
+  <button role="tab" data-t="set" aria-selected="false">設定</button>
+</nav>
+<section id="home"></section>
+<section id="log" class="hide"></section>
+<section id="set" class="hide"></section>
+</main>
+<script>
+(function(){
+var KEY="budget-planner-v1",CATS=["餐飲","交通","購物","娛樂","醫療","其他"];
+var S={cap:0,warn:80,salary:0,payday:5,daily:true,dtime:"21:00",rate:20,fixed:[],tx:[],start:ym(new Date()),notified:"",dis:{}};
+try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);for(var k in o)S[k]=o[k];}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function pad(n){return n<10?"0"+n:""+n}
+function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function ym(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function nt(n){return "NT$ "+Math.round(n).toLocaleString("en-US")}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+var view=ym(new Date()),tab="home";
+function dim(m){var p=m.split("-");return new Date(+p[0],+p[1],0).getDate()}
+function fixedSum(){return S.fixed.reduce(function(a,f){return a+(+f.amt||0)},0)}
+function spent(m){return S.tx.filter(function(t){return t.date.slice(0,7)===m}).reduce(function(a,t){return a+t.amt},0)}
+function shift(m,n){var p=m.split("-");return ym(new Date(+p[0],+p[1]-1+n,1))}
+function cumSaved(){var m=S.start,cur=ym(new Date()),tot=0,g=0;if(m>cur)m=cur;while(m<=cur&&g++<600){tot+=S.salary-fixedSum()-spent(m);m=shift(m,1)}return tot}
+function $(id){return document.getElementById(id)}
+function autoCap(){return Math.max(0,S.salary-fixedSum()-S.salary*S.rate/100)}
+function cap(){return S.cap>0?S.cap:autoCap()}
+var PC=["#1D7A5F","#3E6FA3","#CF5A43","#C9962B","#8A63B0","#6F8A82"];
+function budgetBox(m,sp){var c=cap();if(!(c>0))return"";var r=sp/c,col=r>=1?"var(--coral)":(r>=S.warn/100?"#C9962B":"var(--jade)");return '<div class="box"><h2>本月預算上限</h2><div class="row"><span>已花 '+nt(sp)+'（'+Math.round(r*100)+'%）</span><span>上限 '+nt(c)+'</span></div><div class="prog"><i style="width:'+Math.min(100,r*100)+'%;background:'+col+'"></i></div><div class="mute" style="margin-top:6px">'+(r>=1?'已超出 '+nt(sp-c):'還可以花 '+nt(c-sp))+'</div></div>'}
+function pieBox(m,sp){var by={};S.tx.forEach(function(t){if(t.date.slice(0,7)===m)by[t.cat]=(by[t.cat]||0)+t.amt});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a]});var h='<div class="box"><h2>支出類別比例</h2>';if(!ks.length)return h+'<p class="mute" style="margin:0">記帳後，這裡會顯示各類別的占比。</p></div>';var off=25,svg='<svg viewBox="0 0 42 42" role="img" aria-label="支出類別圓餅圖"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--line)" stroke-width="8"/>',lg='<div class="leg">';ks.forEach(function(k){var p=by[k]/sp*100,i=CATS.indexOf(k),col=PC[i>=0?i:5];svg+='<circle cx="21" cy="21" r="15.9155" fill="none" stroke="'+col+'" stroke-width="8" stroke-dasharray="'+p+' '+(100-p)+'" stroke-dashoffset="'+off+'"/>';off-=p;lg+='<span><b style="background:'+col+'"></b>'+esc(k)+' '+nt(by[k])+'（'+Math.round(p)+'%）</span>'});return h+'<div class="pie">'+svg+'</svg>'+lg+'</div></div></div>'}
+
+function renderHome(){
+  var m=view,sal=S.salary,fx=fixedSum(),goal=sal*S.rate/100,free=sal-fx-goal,sp=spent(m),days=dim(m),now=new Date(),isCur=m===ym(now);
+  var left=free-sp,saved=sal-fx-sp,remDays=isCur?days-now.getDate()+1:days;
+  var perDay=remDays>0?left/remDays:0;
+  var pct=function(v){return sal>0?Math.max(0,v/sal*100):0};
+  var h="";
+  if(!sal){h+='<div class="box"><h2>先從設定開始</h2><p class="mute" style="margin:0 0 10px">輸入月薪與固定支出後，這裡會幫你算出每月該存多少、每天能花多少。</p><button class="p" data-go="set">前往設定</button></div>';$("home").innerHTML=h;bind();return}
+  h+='<div class="box"><div class="mute">'+(isCur?"今天起每天可花":"當月每日平均預算")+'</div><div class="big'+(perDay<0?" neg":"")+'">'+nt(perDay)+'</div><div class="mute">自由花費剩餘 '+nt(left)+(isCur?"，還有 "+remDays+" 天":"")+'</div></div>';
+  if(free<0)h+='<div class="alert"><span>固定支出加上儲蓄目標超過月薪 '+nt(-free)+'，可到設定調低儲蓄比例。</span></div>';
+  h+='<div class="box"><h2>月薪分配</h2><div class="bar"><i style="width:'+pct(fx)+'%;background:var(--sky)"></i><i style="width:'+pct(goal)+'%;background:var(--jade)"></i><i style="width:'+pct(Math.max(free,0))+'%;background:var(--coral)"></i></div>';
+  h+='<div class="leg"><span><b style="background:var(--sky)"></b>固定 '+nt(fx)+'</span><span><b style="background:var(--jade)"></b>儲蓄 '+nt(goal)+'</span><span><b style="background:var(--coral)"></b>自由 '+nt(free)+'</span></div></div>';
+  h+=budgetBox(m,sp);h+=pieBox(m,sp);
+  var pr=goal>0?Math.min(100,Math.max(0,saved/goal*100)):0;
+  h+='<div class="box"><h2>'+m.replace("-","年")+'月 收支</h2>';
+  h+='<div class="row"><span>月薪</span><span>'+nt(sal)+'</span></div><div class="row"><span>固定支出</span><span>'+nt(fx)+'</span></div><div class="row"><span>記帳開銷</span><span>'+nt(sp)+'</span></div><div class="row"><b>本月存下</b><b class="'+(saved<0?"neg":"")+'" style="'+(saved<0?"color:var(--coral)":"")+'">'+nt(saved)+'</b></div>';
+  h+='<div class="mute" style="margin-top:8px">儲蓄目標 '+nt(goal)+'，已達成 '+Math.round(pr)+'%</div><div class="prog"><i style="width:'+pr+'%"></i></div></div>';
+  h+='<div class="box"><div class="mute">累計已存（自 '+S.start.replace("-","年")+'月起）</div><div class="big'+(cumSaved()<0?" neg":"")+'">'+nt(cumSaved())+'</div></div>';
+  $("home").innerHTML=h;bind();
+}
+
+function renderLog(){
+  var m=view,td=ymd(new Date()),h="";
+  h+='<div class="box"><h2>新增一筆開銷</h2><div class="grid"><div><label for="ld">日期</label><input id="ld" type="date" value="'+(m===ym(new Date())?td:m+"-01")+'"></div><div><label for="la">金額</label><input id="la" type="number" inputmode="decimal" min="0" placeholder="0"></div><div><label for="lc">類別</label><select id="lc">'+CATS.map(function(c){return"<option>"+c+"</option>"}).join("")+'</select></div><div><label for="ln">備註</label><input id="ln" type="text" placeholder="午餐、捷運…"></div></div><p style="margin:12px 0 0"><button class="p" id="ladd">記一筆</button></p></div>';
+  var list=S.tx.filter(function(t){return t.date.slice(0,7)===m}).sort(function(a,b){return a.date<b.date?1:-1});
+  h+='<div class="box"><h2>'+m.replace("-","年")+'月明細（'+list.length+' 筆，'+nt(spent(m))+'）</h2>';
+  if(!list.length)h+='<p class="mute" style="margin:0">這個月還沒有紀錄，從上方記下第一筆吧。</p>';
+  list.forEach(function(t){h+='<div class="tx"><div class="d">'+esc(t.note||t.cat)+'<small>'+t.date.slice(5).replace("-","/")+'・'+esc(t.cat)+'</small></div><span class="a">'+nt(t.amt)+'</span><button class="x" data-del="'+t.id+'" aria-label="刪除">刪除</button></div>'});
+  h+='</div>';$("log").innerHTML=h;
+  $("ladd").onclick=function(){var a=parseFloat($("la").value),d=$("ld").value;if(!(a>0)||!d){$("la").focus();return}S.tx.push({id:uid(),date:d,cat:$("lc").value,amt:a,note:$("ln").value.trim()});save();renderAll()};
+  $("la").onkeydown=function(e){if(e.key==="Enter")$("ladd").click()};
+  bind();
+}
+
+function renderSet(){
+  var h='<div class="box"><h2>薪水與儲蓄</h2><div class="grid"><div><label for="ss">每月薪水</label><input id="ss" type="number" inputmode="decimal" min="0" value="'+(S.salary||"")+'"></div><div><label for="sr">儲蓄比例（%）</label><input id="sr" type="number" min="0" max="100" value="'+S.rate+'"></div></div><p class="mute" style="margin:8px 0 0">常見參考是固定支出約 50%、自由花費 30%、儲蓄 20%。</p></div>';
+  h+='<div class="box"><h2>每月固定支出</h2><div id="fl">';
+  S.fixed.forEach(function(f){h+='<div class="g3" data-fid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="項目"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額"><button class="x" data-fdel="'+f.id+'">刪除</button></div>'});
+  h+='</div><div class="g3"><input id="fn" placeholder="項目，例如房租" aria-label="新項目"><input id="fa" type="number" inputmode="decimal" placeholder="金額" aria-label="新金額"><button id="fadd">新增</button></div><div class="mute">固定支出合計 '+nt(fixedSum())+'</div></div>';
+  h+='<div class="box"><h2>每月預算上限</h2><div class="grid"><div><label for="sc">上限金額（留空＝自動）</label><input id="sc" type="number" inputmode="decimal" min="0" value="'+(S.cap||"")+'" placeholder="'+Math.round(autoCap())+'"></div><div><label for="sw">提早警告（%）</label><input id="sw" type="number" min="1" max="100" value="'+S.warn+'"></div></div><p class="mute" style="margin:8px 0 0">自動上限等於月薪減固定支出再減儲蓄目標。花到警告比例與超過上限時，都會跳出提醒。</p></div>';
+  h+='<div class="box"><h2>提醒</h2><div class="grid"><div><label for="sp">每月提醒日（1 至 31）</label><input id="sp" type="number" min="1" max="31" value="'+S.payday+'"></div><div><label for="st">每日記帳提醒時間</label><input id="st" type="time" value="'+S.dtime+'"></div></div><p style="margin:12px 0 6px"><label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input id="sd" type="checkbox" style="width:auto" '+(S.daily?"checked":"")+'>每天提醒我記帳</label></p><button id="sn">開啟瀏覽器通知</button><p class="mute" style="margin:8px 0 0">提醒會在頁面開著時出現。網頁無法在關閉後主動推播，建議把本頁加入手機主畫面或釘選分頁。</p></div>';
+  h+='<div class="box"><h2>資料備份</h2><p class="mute" style="margin:0 0 10px">資料只存在這個瀏覽器裡，換裝置或清除資料前請先匯出。</p><button id="ex">匯出 JSON</button> <button id="im">匯入 JSON</button> <button class="x" id="rs">清除全部</button><input id="imf" type="file" accept="application/json" class="hide"></div>';
+  $("set").innerHTML=h;
+  $("ss").onchange=function(){S.salary=Math.max(0,+this.value||0);save();renderAll()};
+  $("sr").onchange=function(){S.rate=Math.min(100,Math.max(0,+this.value||0));save();renderAll()};
+  $("sc").onchange=function(){S.cap=Math.max(0,+this.value||0);save();renderAll()};
+  $("sw").onchange=function(){S.warn=Math.min(100,Math.max(1,+this.value||80));save();renderAll()};
+  $("sp").onchange=function(){S.payday=Math.min(31,Math.max(1,+this.value||1));save();checkAlerts()};
+  $("st").onchange=function(){S.dtime=this.value||"21:00";save();checkAlerts()};
+  $("sd").onchange=function(){S.daily=this.checked;save();checkAlerts()};
+  $("fadd").onclick=function(){var n=$("fn").value.trim(),a=parseFloat($("fa").value);if(!n||!(a>=0)){$("fn").focus();return}S.fixed.push({id:uid(),name:n,amt:a});save();renderAll()};
+  document.querySelectorAll("[data-fid] input").forEach(function(i){i.onchange=function(){var f=S.fixed.filter(function(x){return x.id===i.parentNode.dataset.fid})[0];if(!f)return;if(i.dataset.k==="amt")f.amt=+i.value||0;else f.name=i.value;save();renderAll()}});
+  document.querySelectorAll("[data-fdel]").forEach(function(b){b.onclick=function(){S.fixed=S.fixed.filter(function(x){return x.id!==b.dataset.fdel});save();renderAll()}});
+  $("sn").onclick=function(){if(!("Notification" in window)){alert("這個瀏覽器不支援通知，會改用頁面內的提醒橫幅。");return}Notification.requestPermission().then(function(p){alert(p==="granted"?"已開啟通知。":"尚未允許通知，會改用頁面內的提醒橫幅。")})};
+  $("ex").onclick=function(){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="budget-"+ymd(new Date())+".json";a.click()};
+  $("im").onclick=function(){$("imf").click()};
+  $("imf").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var o=JSON.parse(r.result);if(!o||typeof o!=="object"||!Array.isArray(o.tx))throw 0;for(var k in o)S[k]=o[k];save();renderAll();alert("匯入完成。")}catch(e){alert("檔案格式不正確。")}};r.readAsText(f)};
+  $("rs").onclick=function(){if(confirm("確定要清除所有資料嗎？此動作無法復原。")){try{localStorage.removeItem(KEY)}catch(e){}S={cap:0,warn:80,salary:0,payday:5,daily:true,dtime:"21:00",rate:20,fixed:[],tx:[],start:ym(new Date()),notified:"",dis:{}};renderAll()}};
+}
+
+function checkAlerts(){
+  var now=new Date(),td=ymd(now),box=$("alerts"),h="",items=[];
+  var pd=Math.min(S.payday,dim(ym(now)));
+  if(now.getDate()===pd&&!S.dis["m"+td])items.push({k:"m"+td,t:"今天是每月 "+S.payday+" 號：確認薪水與固定支出，並檢視上個月存了多少。"});
+  var c=cap(),mm=ym(now),sp=spent(mm);
+  if(c>0){var r=sp/c;
+    if(r>=1&&!S.dis["o"+mm])items.push({k:"o"+mm,t:"本月開銷已超過預算上限 "+nt(sp-c)+"（上限 "+nt(c)+"），剩下的日子建議先暫停非必要消費。"});
+    else if(r>=S.warn/100&&r<1&&!S.dis["w"+mm])items.push({k:"w"+mm,t:"本月開銷已達預算上限的 "+Math.round(r*100)+"%，還剩 "+nt(c-sp)+"。"});}
+  var hm=pad(now.getHours())+":"+pad(now.getMinutes());
+  var logged=S.tx.some(function(t){return t.date===td});
+  if(S.daily&&hm>=S.dtime&&!logged&&!S.dis["d"+td])items.push({k:"d"+td,t:"今天還沒有記帳，花一分鐘記下今天的開銷吧。"});
+  items.forEach(function(i){h+='<div class="alert" role="alert"><span>'+esc(i.t)+'</span><button data-dis="'+i.k+'">知道了</button></div>'});
+  box.innerHTML=h;
+  box.querySelectorAll("[data-dis]").forEach(function(b){b.onclick=function(){S.dis[b.dataset.dis]=1;save();checkAlerts()}});
+  if(items.length&&S.notified!==td+items.length&&"Notification"in window&&Notification.permission==="granted"){S.notified=td+items.length;save();try{new Notification("月薪分配記帳本",{body:items[0].t})}catch(e){}}
+}
+
+function bind(){
+  document.querySelectorAll("[data-go]").forEach(function(b){b.onclick=function(){setTab(b.dataset.go)}});
+  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();renderAll()}});
+}
+function setTab(t){
+  tab=t;["home","log","set"].forEach(function(s){$(s).classList.toggle("hide",s!==t)});
+  document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
+}
+function renderAll(){
+  $("ml").textContent=view.replace("-","年")+"月";
+  renderHome();renderLog();renderSet();checkAlerts();
+}
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){setTab(b.dataset.t)}});
+$("pm").onclick=function(){view=shift(view,-1);renderAll()};
+$("nm").onclick=function(){view=shift(view,1);renderAll()};
+renderAll();
+setInterval(checkAlerts,60000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAlerts()});
+})();
+</script>
+</body>
+</html>
