@@ -102,7 +102,7 @@ function autoCap(){return Math.max(0,S.salary-fixedSum()-S.salary*S.rate/100)}
 function cap(){return S.cap>0?S.cap:autoCap()}
 function monthSave(){return S.salary*S.rate/100}
 function applyTheme(){document.documentElement.setAttribute("data-theme",S.theme==="dark"?"dark":"light")}
-var CUR=["TWD","USD","JPY","EUR","CNY","HKD"],CN={TWD:"新台幣",USD:"美元",JPY:"日圓",EUR:"歐元",CNY:"人民幣",HKD:"港幣"},DR={USD:32,JPY:0.21,EUR:35,CNY:4.5,HKD:4.1},INCATS=["發票中獎","轉帳收入","獎金","其他收入"];
+var CUR=["TWD","USD","JPY","EUR","CNY","HKD"],CN={TWD:"新台幣",USD:"美元",JPY:"日圓",EUR:"歐元",CNY:"人民幣",HKD:"港幣"},DR={USD:32,JPY:0.21,EUR:35,CNY:4.5,HKD:4.1},INCATS=["發票中獎","轉帳收入","利息","零用錢","其他收入"];
 function rate(c){return !c||c==="TWD"?1:(+(S.rates&&S.rates[c])||DR[c]||1)}
 function toTWD(a){return (+a.bal||0)*rate(a.cur)}
 function r2(n){return Math.round(n*100)/100}
