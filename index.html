@@ -60,6 +60,11 @@ button,input,select{border-radius:4px}
 .grid>div,.acc>*,.g3>*{min-width:0}
 input[type="date"],input[type="time"]{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;min-height:42px;text-align:left}
 input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left}
+h2.fold{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg);transition:transform .2s}
+.box.shut h2.fold::after{transform:rotate(-45deg);margin-bottom:0}
+.box.shut>*:not(h2.fold){display:none}
+.box.shut h2.fold{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -102,6 +107,7 @@ function autoCap(){return Math.max(0,S.salary-fixedSum()-S.salary*S.rate/100)}
 function cap(){return S.cap>0?S.cap:autoCap()}
 function monthSave(){return S.salary*S.rate/100}
 function applyTheme(){document.documentElement.setAttribute("data-theme",S.theme==="dark"?"dark":"light")}
+function foldify(){S.fold=S.fold||{};document.querySelectorAll(".box").forEach(function(bx){var h=bx.querySelector("h2");if(!h||h.parentNode!==bx)return;var key=h.textContent.replace(/^\d{4}年\d{1,2}月/,"月").split("（")[0].trim();var shut=!!S.fold[key];h.classList.add("fold");h.setAttribute("role","button");h.setAttribute("tabindex","0");h.setAttribute("aria-expanded",String(!shut));bx.classList.toggle("shut",shut);var go=function(){if(S.fold[key])delete S.fold[key];else S.fold[key]=1;save();bx.classList.toggle("shut",!!S.fold[key]);h.setAttribute("aria-expanded",String(!S.fold[key]))};h.onclick=go;h.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}})}
 var CUR=["TWD","USD","JPY","EUR","CNY","HKD"],CN={TWD:"新台幣",USD:"美元",JPY:"日圓",EUR:"歐元",CNY:"人民幣",HKD:"港幣"},DR={USD:32,JPY:0.21,EUR:35,CNY:4.5,HKD:4.1},INCATS=["發票中獎","轉帳收入","利息","零用錢","其他收入"];
 function rate(c){return !c||c==="TWD"?1:(+(S.rates&&S.rates[c])||DR[c]||1)}
 function toTWD(a){return (+a.bal||0)*rate(a.cur)}
@@ -234,7 +240,7 @@ function setTab(t){
 function renderAll(){
   applyTheme();
   $("ml").textContent=view.replace("-","年")+"月";
-  renderHome();renderLog();renderSet();checkAlerts();
+  renderHome();renderLog();renderSet();checkAlerts();foldify();
 }
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){setTab(b.dataset.t)}});
 $("pm").onclick=function(){view=shift(view,-1);renderAll()};
