@@ -119,6 +119,8 @@ function curOpts(s){s=s||"TWD";return CUR.map(function(c){return '<option value=
 function acctOpts(sel){return (S.accts||[]).map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?" selected":"")+'>'+esc(a.name)+'（'+(a.cur||"TWD")+'）</option>'}).join("")}
 function accTag(id){var a=acctById(id);return a?'・'+esc(a.name):''}
 function adj(id,twd){var a=acctById(id);if(a)a.bal=r2((+a.bal||0)+twd/rate(a.cur))}
+function adjT(t){var a=acctById(t.acct);if(!a)return;var v=t.oa!=null?t.oa:t.amt/rate(a.cur);a.bal=r2((+a.bal||0)+(t.type==="in"?-v:v))}
+function txAmt(t){return t.oc&&t.oc!=="TWD"?fmt(t.oa,t.oc)+'（約 '+nt(t.amt)+'）':(t.amt<10&&t.amt%1?fmt(t.amt,"USD").replace("USD ","NT$ "):nt(t.amt))}
 function nameOf(id,d){var a=acctById(id);return a?a.name:(id?"（已刪除帳戶）":d)}
 function xferBox(m){var h='<div class="box"><h2>提領或轉帳</h2>';if(!(S.accts||[]).length)return h+'<p class="mute" style="margin:0">先到設定新增銀行或現金錢包，才能記錄提領與轉帳。</p></div>';var d=m===ym(new Date())?ymd(new Date()):m+"-01";
   h+='<p class="mute" style="margin:0 0 10px">提領現金：從銀行轉到現金錢包。美元換台幣等跨幣別會依設定的匯率換算。</p><div class="grid"><div><label for="xf">從</label><select id="xf"><option value="">外部存入</option>'+acctOpts("")+'</select></div><div><label for="xt">到</label><select id="xt"><option value="">領出（不再追蹤）</option>'+acctOpts("")+'</select></div><div><label for="xa">轉出金額</label><input id="xa" type="number" inputmode="decimal" min="0" placeholder="0"></div><div><label for="xg">轉入金額（可修改）</label><input id="xg" type="number" inputmode="decimal" min="0" placeholder="自動換算"></div><div><label for="xd">日期</label><input id="xd" type="date" value="'+d+'"></div><div><label for="xn">備註</label><input id="xn" placeholder="提款機領現金…"></div></div><p style="margin:12px 0 0"><button class="p" id="xadd">記錄</button></p>';
@@ -162,15 +164,16 @@ function renderHome(){
 
 function renderLog(){
   var m=view,td=ymd(new Date()),h="";
-  h+='<div class="box"><h2>記一筆（支出或收入）</h2><div class="grid"><div><label for="ld">日期</label><input id="ld" type="date" value="'+(m===ym(new Date())?td:m+"-01")+'"></div><div><label for="la">金額</label><input id="la" type="number" inputmode="decimal" min="0" placeholder="0"></div><div><label for="lc">類別</label><select id="lc"><optgroup label="支出">'+CATS.map(function(c){return '<option value="o:'+c+'">'+c+'</option>'}).join("")+'</optgroup><optgroup label="收入">'+INCATS.map(function(c){return '<option value="i:'+c+'">'+c+'</option>'}).join("")+'</optgroup></select></div><div><label for="lk">帳戶（可不選）</label><select id="lk"><option value="">不指定</option>'+acctOpts("")+'</select></div><div><label for="ln">備註</label><input id="ln" type="text" placeholder="午餐、捷運…"></div></div><p style="margin:12px 0 0"><button class="p" id="ladd">記一筆</button></p></div>';
+  h+='<div class="box"><h2>記一筆（支出或收入）</h2><div class="grid"><div><label for="ld">日期</label><input id="ld" type="date" value="'+(m===ym(new Date())?td:m+"-01")+'"></div><div><label for="la" id="lal">金額（TWD）</label><input id="la" type="number" inputmode="decimal" min="0" placeholder="0"></div><div><label for="lc">類別</label><select id="lc"><optgroup label="支出">'+CATS.map(function(c){return '<option value="o:'+c+'">'+c+'</option>'}).join("")+'</optgroup><optgroup label="收入">'+INCATS.map(function(c){return '<option value="i:'+c+'">'+c+'</option>'}).join("")+'</optgroup></select></div><div><label for="lk">帳戶（可不選）</label><select id="lk"><option value="">不指定</option>'+acctOpts("")+'</select></div><div><label for="ln">備註</label><input id="ln" type="text" placeholder="午餐、捷運…"></div></div><p style="margin:12px 0 0"><button class="p" id="ladd">記一筆</button></p></div>';
   h+=xferBox(m);
   var list=S.tx.filter(function(t){return t.date.slice(0,7)===m}).sort(function(a,b){return a.date<b.date?1:-1});
   h+='<div class="box"><h2>'+m.replace("-","年")+'月明細（'+list.length+' 筆，支出 '+nt(spent(m))+'，收入 '+nt(incomeOf(m))+'）</h2>';
   if(!list.length)h+='<p class="mute" style="margin:0">這個月還沒有紀錄，從上方記下第一筆吧。</p>';
-  list.forEach(function(t){h+='<div class="tx"><div class="d">'+esc(t.note||t.cat)+'<small>'+t.date.slice(5).replace("-","/")+'・'+esc(t.cat)+accTag(t.acct)+'</small></div><span class="a"'+(t.type==="in"?' style="color:var(--jade)"':"")+'>'+(t.type==="in"?"+":"")+nt(t.amt)+'</span><button class="x" data-del="'+t.id+'" aria-label="刪除">刪除</button></div>'});
+  list.forEach(function(t){h+='<div class="tx"><div class="d">'+esc(t.note||t.cat)+'<small>'+t.date.slice(5).replace("-","/")+'・'+esc(t.cat)+accTag(t.acct)+'</small></div><span class="a"'+(t.type==="in"?' style="color:var(--jade)"':"")+'>'+(t.type==="in"?"+":"")+txAmt(t)+'</span><button class="x" data-del="'+t.id+'" aria-label="刪除">刪除</button></div>'});
   h+='</div>';$("log").innerHTML=h;
   bindXfer();
-  $("ladd").onclick=function(){var a=parseFloat($("la").value),d=$("ld").value;if(!(a>0)||!d){$("la").focus();return}var v=$("lc").value,k=$("lk").value,ty=v.charAt(0)==="i"?"in":"out";S.tx.push({id:uid(),date:d,cat:v.slice(2),type:ty,acct:k,amt:a,note:$("ln").value.trim()});if(k)adj(k,ty==="in"?a:-a);save();renderAll()};
+  $("lk").onchange=function(){var a=acctById(this.value);$("lal").textContent="金額（"+(a?(a.cur||"TWD"):"TWD")+"）"};
+  $("ladd").onclick=function(){var a=parseFloat($("la").value),d=$("ld").value;if(!(a>0)||!d){$("la").focus();return}var v=$("lc").value,k=$("lk").value,ty=v.charAt(0)==="i"?"in":"out",ac=acctById(k),c=ac?(ac.cur||"TWD"):"TWD",tw=r2(a*rate(c));S.tx.push({id:uid(),date:d,cat:v.slice(2),type:ty,acct:k,amt:tw,oc:c,oa:a,note:$("ln").value.trim()});if(ac)ac.bal=r2((+ac.bal||0)+(ty==="in"?a:-a));save();renderAll()};
   $("la").onkeydown=function(e){if(e.key==="Enter")$("ladd").click()};
   bind();
 }
@@ -231,7 +234,7 @@ function checkAlerts(){
 
 function bind(){
   document.querySelectorAll("[data-go]").forEach(function(b){b.onclick=function(){setTab(b.dataset.go)}});
-  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var t0=S.tx.filter(function(t){return t.id===b.dataset.del})[0];if(t0&&t0.acct)adj(t0.acct,t0.type==="in"?-t0.amt:t0.amt);S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();renderAll()}});
+  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var t0=S.tx.filter(function(t){return t.id===b.dataset.del})[0];if(t0&&t0.acct)adjT(t0);S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();renderAll()}});
 }
 function setTab(t){
   tab=t;["home","log","set"].forEach(function(s){$(s).classList.toggle("hide",s!==t)});
