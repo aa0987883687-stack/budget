@@ -58,7 +58,7 @@ button,input,select{border-radius:4px}
 .acc{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
 .g3{grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto}
 .grid>div,.acc>*,.g3>*{min-width:0}
-input[type="date"],input[type="time"]{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;min-height:42px;text-align:left}
+input[type="date"],input[type="time"],input[type="month"]{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;min-height:42px;text-align:left}
 input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left}
 h2.fold{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg);transition:transform .2s}
@@ -101,11 +101,14 @@ function fixedSum(){return S.fixed.reduce(function(a,f){return a+(+f.amt||0)},0)
 function spent(m){return S.tx.filter(function(t){return t.date.slice(0,7)===m&&t.type!=="in"}).reduce(function(a,t){return a+t.amt},0)}
 function incomeOf(m){return S.tx.filter(function(t){return t.date.slice(0,7)===m&&t.type==="in"}).reduce(function(a,t){return a+t.amt},0)}
 function shift(m,n){var p=m.split("-");return ym(new Date(+p[0],+p[1]-1+n,1))}
-function cumSaved(){var m=S.start,cur=ym(new Date()),tot=0,g=0;if(m>cur)m=cur;while(m<=cur&&g++<600){tot+=S.salary+incomeOf(m)-fixedSum()-spent(m);m=shift(m,1)}return tot}
+function cumSaved(){var m=S.start,cur=ym(new Date()),tot=0,g=0;if(m>cur)m=cur;while(m<=cur&&g++<600){tot+=salaryOf(m)+incomeOf(m)-fixedSum()-spent(m);m=shift(m,1)}return tot}
 function $(id){return document.getElementById(id)}
-function autoCap(){return Math.max(0,S.salary-fixedSum()-S.salary*S.rate/100)}
-function cap(){return S.cap>0?S.cap:autoCap()}
-function monthSave(){return S.salary*S.rate/100}
+function autoCap(m){return Math.max(0,salaryOf(m||ym(new Date()))-fixedSum()-baseSalary(m||ym(new Date()))*S.rate/100)}
+function cap(m){return S.cap>0?S.cap:autoCap(m)}
+function monthSave(){return baseSalary(ym(new Date()))*S.rate/100}
+function baseSalary(m){var b=S.salary,best="";(S.raises||[]).forEach(function(r){if(r.from<=m&&r.from>=best){best=r.from;b=+r.amt||0}});return b}
+function salaryOf(m){return S.salOv&&S.salOv[m]!=null?+S.salOv[m]:baseSalary(m)}
+function autoPay(){var a=acctById(S.payAcct);if(!a||!(salaryOf(ym(new Date()))>0))return false;var n=new Date(),mm=ym(n);S.paid=S.paid||{};if(S.paid[mm])return false;var pd=Math.min(S.payday,dim(mm));if(n.getDate()<pd)return false;var g=r2(salaryOf(mm)/rate(a.cur));if(!(g>0)){S.paid[mm]=1;save();return false}S.xfer.push({id:uid(),date:mm+"-"+pad(pd),from:"",to:a.id,amt:g,got:g,note:"薪水自動入帳",auto:1});a.bal=r2((+a.bal||0)+g);S.paid[mm]=1;save();return true}
 function applyTheme(){document.documentElement.setAttribute("data-theme",S.theme==="dark"?"dark":"light")}
 function foldify(){S.fold=S.fold||{};document.querySelectorAll(".box").forEach(function(bx){var h=bx.querySelector("h2");if(!h||h.parentNode!==bx)return;var key=h.textContent.replace(/^\d{4}年\d{1,2}月/,"月").split("（")[0].trim();var shut=!!S.fold[key];h.classList.add("fold");h.setAttribute("role","button");h.setAttribute("tabindex","0");h.setAttribute("aria-expanded",String(!shut));bx.classList.toggle("shut",shut);var go=function(){if(S.fold[key])delete S.fold[key];else S.fold[key]=1;save();bx.classList.toggle("shut",!!S.fold[key]);h.setAttribute("aria-expanded",String(!S.fold[key]))};h.onclick=go;h.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}})}
 var CUR=["TWD","USD","JPY","EUR","CNY","HKD"],CN={TWD:"新台幣",USD:"美元",JPY:"日圓",EUR:"歐元",CNY:"人民幣",HKD:"港幣"},DR={USD:32,JPY:0.21,EUR:35,CNY:4.5,HKD:4.1},INCATS=["發票中獎","轉帳收入","利息","零用錢","其他收入"];
@@ -138,11 +141,11 @@ function bindXfer(){if(!$("xadd"))return;
 function acctTotal(){return (S.accts||[]).filter(function(a){return a.on}).reduce(function(t,a){return t+toTWD(a)},0)}
 function acctBox(){var L=(S.accts||[]).filter(function(a){return a.on}),h='<div class="box"><h2>存款總覽</h2>';if(!L.length)return h+'<p class="mute" style="margin:0 0 10px">還沒有設定存款帳戶，到設定新增銀行或現金錢包。</p><button data-go="set">前往設定</button></div>';L.forEach(function(a){h+='<div class="row"><span>'+esc(a.name)+'</span><span>'+fmt(+a.bal||0,a.cur)+((a.cur||"TWD")!=="TWD"?'<span class="mute">（約 '+nt(toTWD(a))+'）</span>':'')+'</span></div>'});return h+'<div class="row"><b>合計（折合台幣）</b><b>'+nt(acctTotal())+'</b></div></div>'}
 var PC=["#4A7C52","#3D6B76","#B5412F","#B8892E","#7A5C8A","#8A9A7B"];
-function budgetBox(m,sp){var c=cap();if(!(c>0))return"";var r=sp/c,col=r>=1?"var(--coral)":(r>=S.warn/100?"#C9962B":"var(--jade)");return '<div class="box"><h2>本月預算上限</h2><div class="row"><span>已花 '+nt(sp)+'（'+Math.round(r*100)+'%）</span><span>上限 '+nt(c)+'</span></div><div class="prog"><i style="width:'+Math.min(100,r*100)+'%;background:'+col+'"></i></div><div class="mute" style="margin-top:6px">'+(r>=1?'已超出 '+nt(sp-c):'還可以花 '+nt(c-sp))+'</div></div>'}
+function budgetBox(m,sp){var c=cap(m);if(!(c>0))return"";var r=sp/c,col=r>=1?"var(--coral)":(r>=S.warn/100?"#C9962B":"var(--jade)");return '<div class="box"><h2>本月預算上限</h2><div class="row"><span>已花 '+nt(sp)+'（'+Math.round(r*100)+'%）</span><span>上限 '+nt(c)+'</span></div><div class="prog"><i style="width:'+Math.min(100,r*100)+'%;background:'+col+'"></i></div><div class="mute" style="margin-top:6px">'+(r>=1?'已超出 '+nt(sp-c):'還可以花 '+nt(c-sp))+'</div></div>'}
 function pieBox(m,sp){var by={};S.tx.forEach(function(t){if(t.date.slice(0,7)===m&&t.type!=="in")by[t.cat]=(by[t.cat]||0)+t.amt});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a]});var h='<div class="box"><h2>支出類別比例</h2>';if(!ks.length)return h+'<p class="mute" style="margin:0">記帳後，這裡會顯示各類別的占比。</p></div>';var off=25,svg='<svg viewBox="0 0 42 42" role="img" aria-label="支出類別圓餅圖"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--line)" stroke-width="8"/>',lg='<div class="leg">';ks.forEach(function(k){var p=by[k]/sp*100,i=CATS.indexOf(k),col=PC[i>=0?i:5];svg+='<circle cx="21" cy="21" r="15.9155" fill="none" stroke="'+col+'" stroke-width="8" stroke-dasharray="'+p+' '+(100-p)+'" stroke-dashoffset="'+off+'"/>';off-=p;lg+='<span><b style="background:'+col+'"></b>'+esc(k)+' '+nt(by[k])+'（'+Math.round(p)+'%）</span>'});return h+'<div class="pie">'+svg+'</svg>'+lg+'</div></div></div>'}
 
 function renderHome(){
-  var m=view,sal=S.salary,fx=fixedSum(),goal=sal*S.rate/100,free=sal-fx-goal,sp=spent(m),days=dim(m),now=new Date(),isCur=m===ym(now);
+  var m=view,sal=salaryOf(view),fx=fixedSum(),goal=baseSalary(view)*S.rate/100,free=sal-fx-goal,sp=spent(m),days=dim(m),now=new Date(),isCur=m===ym(now);
   var left=free-sp,saved=sal+incomeOf(m)-fx-sp,remDays=isCur?days-now.getDate()+1:days;
   var perDay=remDays>0?left/remDays:0;
   var pct=function(v){return sal>0?Math.max(0,v/sal*100):0};
@@ -155,7 +158,7 @@ function renderHome(){
   h+=budgetBox(m,sp);h+=pieBox(m,sp);
   var pr=goal>0?Math.min(100,Math.max(0,saved/goal*100)):0;
   h+='<div class="box"><h2>'+m.replace("-","年")+'月 收支</h2>';
-  h+='<div class="row"><span>月薪</span><span>'+nt(sal)+'</span></div><div class="row"><span>其他收入</span><span>'+nt(incomeOf(m))+'</span></div><div class="row"><span>固定支出</span><span>'+nt(fx)+'</span></div><div class="row"><span>記帳開銷</span><span>'+nt(sp)+'</span></div><div class="row"><b>本月存下</b><b class="'+(saved<0?"neg":"")+'" style="'+(saved<0?"color:var(--coral)":"")+'">'+nt(saved)+'</b></div>';
+  h+='<div class="row"><span>月薪'+(S.salOv&&S.salOv[m]!=null?"（當月調整）":"")+'</span><span>'+nt(sal)+'</span></div><div class="row"><span>其他收入</span><span>'+nt(incomeOf(m))+'</span></div><div class="row"><span>固定支出</span><span>'+nt(fx)+'</span></div><div class="row"><span>記帳開銷</span><span>'+nt(sp)+'</span></div><div class="row"><b>本月存下</b><b class="'+(saved<0?"neg":"")+'" style="'+(saved<0?"color:var(--coral)":"")+'">'+nt(saved)+'</b></div>';
   h+='<div class="mute" style="margin-top:8px">儲蓄目標 '+nt(goal)+'，已達成 '+Math.round(pr)+'%</div><div class="prog"><i style="width:'+pr+'%"></i></div></div>';
   h+='<div class="box"><div class="mute">累計已存（自 '+S.start.replace("-","年")+'月起）</div><div class="big'+(cumSaved()<0?" neg":"")+'">'+nt(cumSaved())+'</div></div>';
   h+=acctBox();
@@ -179,23 +182,30 @@ function renderLog(){
 }
 
 function renderSet(){
-  var h='<div class="box"><h2>薪水與儲蓄</h2><div class="grid"><div><label for="ss">每月薪水</label><input id="ss" type="number" inputmode="decimal" min="0" value="'+(S.salary||"")+'"></div><div><label for="sr">儲蓄比例（%）</label><input id="sr" type="number" min="0" max="100" value="'+S.rate+'"></div></div><div class="row" style="margin-top:10px"><b>每月應存</b><b>'+nt(monthSave())+'</b></div><div class="row"><span>固定支出後可自由花費</span><span>'+nt(autoCap())+'</span></div><p class="mute" style="margin:8px 0 0">每月應存等於月薪乘以儲蓄比例。常見參考是固定支出約 50%、自由花費 30%、儲蓄 20%。</p></div>';
+  var h='<div class="box"><h2>薪水與儲蓄</h2><div class="grid"><div><label for="ss">每月薪水</label><input id="ss" type="number" inputmode="decimal" min="0" value="'+(S.salary||"")+'"></div><div><label for="sr">儲蓄比例（%）</label><input id="sr" type="number" min="0" max="100" value="'+S.rate+'"></div></div><div style="margin-top:12px"><label for="so">'+view.replace("-","年")+'月實領月薪（有請假扣薪時填，留空＝'+nt(baseSalary(view))+'）</label><input id="so" type="number" inputmode="decimal" min="0" value="'+(S.salOv&&S.salOv[view]!=null?S.salOv[view]:"")+'" placeholder="'+baseSalary(view)+'"></div><div style="margin-top:12px"><label for="pa">薪水自動入帳到哪個帳戶（發薪日在下方「提醒」設定）</label><select id="pa"><option value="">不自動入帳</option>'+acctOpts(S.payAcct||"")+'</select></div><div class="row" style="margin-top:10px"><b>每月應存</b><b>'+nt(monthSave())+'</b></div><div class="row"><span>固定支出後可自由花費</span><span>'+nt(autoCap())+'</span></div><p class="mute" style="margin:8px 0 0">每月應存等於月薪乘以儲蓄比例。常見參考是固定支出約 50%、自由花費 30%、儲蓄 20%。</p></div>';
   h+='<div class="box"><h2>每月固定支出</h2><div id="fl">';
   S.fixed.forEach(function(f){h+='<div class="g3" data-fid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="項目"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額"><button class="x" data-fdel="'+f.id+'">刪除</button></div>'});
   h+='</div><div class="g3"><input id="fn" placeholder="項目，例如房租" aria-label="新項目"><input id="fa" type="number" inputmode="decimal" placeholder="金額" aria-label="新金額"><button id="fadd">新增</button></div><div class="mute">固定支出合計 '+nt(fixedSum())+'</div></div>';
+  h+='<div class="box"><h2>調薪紀錄</h2>';
+  (S.raises||[]).slice().sort(function(a,b){return a.from<b.from?-1:1}).forEach(function(r){h+='<div class="g3"><span>'+r.from.replace("-","年")+'月起</span><span>'+nt(r.amt)+'</span><button class="x" data-rdel="'+r.id+'">刪除</button></div>'});
+  h+='<div class="grid" style="margin-top:6px"><div><label for="rf">生效月份</label><input id="rf" type="month"></div><div><label for="ra">調整後月薪</label><input id="ra" type="number" inputmode="decimal" min="0" placeholder="0"></div></div><p style="margin:10px 0 0"><button id="radd">新增調薪</button></p><p class="mute" style="margin:8px 0 0">調薪只影響生效月份之後，過去月份的計算不會變。上方填的月薪，是第一筆調薪之前使用的金額。</p></div>';
   h+='<div class="box"><h2>存款帳戶（銀行與現金）</h2>';
   (S.accts||[]).forEach(function(a){h+='<div class="acc" data-aid="'+a.id+'"><label class="on"><input type="checkbox" data-k="on" '+(a.on?"checked":"")+' style="width:auto">目前有存款<select data-k="cur" style="width:auto;margin-left:auto" aria-label="幣別">'+curOpts(a.cur)+'</select></label><input data-k="name" value="'+esc(a.name)+'" aria-label="帳戶名稱"><input data-k="bal" type="number" inputmode="decimal" value="'+a.bal+'" aria-label="餘額"><button class="x" data-adel="'+a.id+'">刪除</button></div>'});
   h+='<div class="acc"><select id="ac" style="grid-column:1/-1" aria-label="幣別">'+curOpts("TWD")+'</select><input id="an" placeholder="帳戶名稱，例如郵局" aria-label="新帳戶名稱"><input id="ab" type="number" inputmode="decimal" placeholder="餘額" aria-label="新帳戶餘額"><button id="aadd">新增</button></div><div class="mute">快速新增：</div><div class="chips">'+["現金錢包","郵局","台灣銀行","中國信託","玉山銀行","國泰世華","台新銀行"].map(function(n){return '<button data-chip="'+n+'">'+n+'</button>'}).join("")+'</div><div class="mute" style="margin-top:10px">有存款的帳戶合計 '+nt(acctTotal())+'。取消勾選「目前有存款」的帳戶，不會計入總覽。</div></div>';
   h+='<div class="box"><h2>匯率（換算成台幣）</h2><div class="grid">'+["USD","JPY","EUR","CNY","HKD"].map(function(c){return '<div><label for="r'+c+'">1 '+c+' ＝ 台幣</label><input id="r'+c+'" data-rate="'+c+'" type="number" step="any" inputmode="decimal" value="'+rate(c)+'"></div>'}).join("")+'</div><p class="mute" style="margin:8px 0 0">預設值只是概略估計，請依實際匯率自行更新。外幣帳戶會用這裡的匯率折合台幣。</p></div>';
   h+='<div class="box"><h2>每月預算上限</h2><div class="grid"><div><label for="sc">上限金額（留空＝自動）</label><input id="sc" type="number" inputmode="decimal" min="0" value="'+(S.cap||"")+'" placeholder="'+Math.round(autoCap())+'"></div><div><label for="sw">提早警告（%）</label><input id="sw" type="number" min="1" max="100" value="'+S.warn+'"></div></div><p class="mute" style="margin:8px 0 0">自動上限等於月薪減固定支出再減儲蓄目標。花到警告比例與超過上限時，都會跳出提醒。</p></div>';
-  h+='<div class="box"><h2>提醒</h2><div class="grid"><div><label for="sp">每月提醒日（1 至 31）</label><input id="sp" type="number" min="1" max="31" value="'+S.payday+'"></div><div><label for="st">每日記帳提醒時間</label><input id="st" type="time" value="'+S.dtime+'"></div></div><p style="margin:12px 0 6px"><label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input id="sd" type="checkbox" style="width:auto" '+(S.daily?"checked":"")+'>每天提醒我記帳</label></p><button id="sn">開啟瀏覽器通知</button><p class="mute" style="margin:8px 0 0">提醒會在頁面開著時出現。網頁無法在關閉後主動推播，建議把本頁加入手機主畫面或釘選分頁。</p></div>';
+  h+='<div class="box"><h2>提醒</h2><div class="grid"><div><label for="sp">每月發薪日／提醒日（1 至 31）</label><input id="sp" type="number" min="1" max="31" value="'+S.payday+'"></div><div><label for="st">每日記帳提醒時間</label><input id="st" type="time" value="'+S.dtime+'"></div></div><p style="margin:12px 0 6px"><label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input id="sd" type="checkbox" style="width:auto" '+(S.daily?"checked":"")+'>每天提醒我記帳</label></p><button id="sn">開啟瀏覽器通知</button><p class="mute" style="margin:8px 0 0">提醒會在頁面開著時出現。網頁無法在關閉後主動推播，建議把本頁加入手機主畫面或釘選分頁。</p></div>';
   h+='<div class="box"><h2>外觀</h2><button data-theme-set="light"'+(S.theme!=="dark"?' class="p"':'')+'>淺色竹林</button> <button data-theme-set="dark"'+(S.theme==="dark"?' class="p"':'')+'>深色夜林</button></div>';
   h+='<div class="box"><h2>資料備份</h2><p class="mute" style="margin:0 0 10px">資料只存在這個瀏覽器裡，換裝置或清除資料前請先匯出。</p><button id="ex">匯出 JSON</button> <button id="im">匯入 JSON</button> <button class="x" id="rs">清除全部</button><input id="imf" type="file" accept="application/json" class="hide"></div>';
   $("set").innerHTML=h;
   $("ss").onchange=function(){S.salary=Math.max(0,+this.value||0);save();renderAll()};
+  $("so").onchange=function(){S.salOv=S.salOv||{};if(this.value==="")delete S.salOv[view];else S.salOv[view]=Math.max(0,+this.value||0);save();renderAll()};
+  $("pa").onchange=function(){S.payAcct=this.value;S.paid=S.paid||{};var n=new Date(),mm=ym(n);if(this.value&&n.getDate()>=Math.min(S.payday,dim(mm)))S.paid[mm]=1;save();renderAll()};
   $("sr").onchange=function(){S.rate=Math.min(100,Math.max(0,+this.value||0));save();renderAll()};
   $("aadd").onclick=function(){var n=$("an").value.trim(),b=parseFloat($("ab").value)||0;if(!n){$("an").focus();return}S.accts.push({id:uid(),name:n,bal:b,cur:$("ac").value,on:true});save();renderAll()};
   document.querySelectorAll("[data-aid] input,[data-aid] select").forEach(function(i){i.onchange=function(){var id=i.closest("[data-aid]").dataset.aid,a=S.accts.filter(function(x){return x.id===id})[0];if(!a)return;if(i.dataset.k==="on")a.on=i.checked;else if(i.dataset.k==="bal")a.bal=+i.value||0;else if(i.dataset.k==="cur")a.cur=i.value;else a.name=i.value;save();renderAll()}});
+  $("radd").onclick=function(){var f=$("rf").value,a=parseFloat($("ra").value);if(!/^\d{4}-\d{2}$/.test(f)||!(a>=0)){alert("請選擇生效月份並輸入調整後月薪。");return}S.raises=(S.raises||[]).filter(function(r){return r.from!==f});S.raises.push({id:uid(),from:f,amt:a});save();renderAll()};
+  document.querySelectorAll("[data-rdel]").forEach(function(b){b.onclick=function(){S.raises=S.raises.filter(function(r){return r.id!==b.dataset.rdel});save();renderAll()}});
   document.querySelectorAll("[data-rate]").forEach(function(i){i.onchange=function(){S.rates=S.rates||{};S.rates[i.dataset.rate]=+i.value>0?+i.value:DR[i.dataset.rate];save();renderAll()}});
   document.querySelectorAll("[data-adel]").forEach(function(b){b.onclick=function(){S.accts=S.accts.filter(function(x){return x.id!==b.dataset.adel});save();renderAll()}});
   document.querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){if(S.accts.some(function(x){return x.name===b.dataset.chip}))return;S.accts.push({id:uid(),name:b.dataset.chip,bal:0,on:true});save();renderAll()}});
@@ -241,7 +251,7 @@ function setTab(t){
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
 }
 function renderAll(){
-  applyTheme();
+  autoPay();applyTheme();
   $("ml").textContent=view.replace("-","年")+"月";
   renderHome();renderLog();renderSet();checkAlerts();foldify();
 }
@@ -249,8 +259,8 @@ document.querySelectorAll("nav button").forEach(function(b){b.onclick=function()
 $("pm").onclick=function(){view=shift(view,-1);renderAll()};
 $("nm").onclick=function(){view=shift(view,1);renderAll()};
 renderAll();
-setInterval(checkAlerts,60000);
-document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAlerts()});
+setInterval(function(){if(autoPay())renderAll();else checkAlerts()},60000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoPay())renderAll();else checkAlerts()}});
 })();
 </script>
 </body>
