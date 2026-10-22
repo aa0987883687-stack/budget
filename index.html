@@ -67,6 +67,7 @@ h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;b
 .box.shut h2.fold{margin-bottom:0}
 #toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:6px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+[data-fid]{padding-bottom:8px;border-bottom:1px dashed var(--line);margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -99,7 +100,7 @@ function nt(n){return "NT$ "+Math.round(n).toLocaleString("en-US")}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 var view=ym(new Date()),tab="home";
 function dim(m){var p=m.split("-");return new Date(+p[0],+p[1],0).getDate()}
-function fixedSum(){return S.fixed.reduce(function(a,f){return a+(+f.amt||0)},0)}
+function fixedSum(){return S.fixed.reduce(function(a,f){return a+(+f.amt||0)/(+f.every||1)},0)}
 function spent(m){return S.tx.filter(function(t){return t.date.slice(0,7)===m&&t.type!=="in"}).reduce(function(a,t){return a+t.amt},0)}
 function incomeOf(m){return S.tx.filter(function(t){return t.date.slice(0,7)===m&&t.type==="in"}).reduce(function(a,t){return a+t.amt},0)}
 function shift(m,n){var p=m.split("-");return ym(new Date(+p[0],+p[1]-1+n,1))}
@@ -108,6 +109,10 @@ function $(id){return document.getElementById(id)}
 function autoCap(m){return Math.max(0,salaryOf(m||ym(new Date()))-fixedSum()-baseSalary(m||ym(new Date()))*S.rate/100)}
 function cap(m){return S.cap>0?S.cap:autoCap(m)}
 function monthSave(){return baseSalary(ym(new Date()))*S.rate/100}
+function isDue(f,m){var e=+f.every||1;if(e<2)return true;var a=(f.start||m).split("-"),b=m.split("-"),d=(+b[0]-+a[0])*12+(+b[1]-+a[1]);return ((d%e)+e)%e===0}
+function evOpts(s){s=+s||1;return [[1,"每月繳"],[2,"每 2 個月繳"],[3,"每 3 個月繳"],[6,"每 6 個月繳"],[12,"每年繳"]].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===s?" selected":"")+'>'+o[1]+'</option>'}).join("")}
+function fMark(f){if(!f.acct)return;var n=new Date(),mm=ym(n);S.fpaid=S.fpaid||{};if(n.getDate()>=Math.min(f.day||1,dim(mm))){S.fpaid[mm]=S.fpaid[mm]||{};S.fpaid[mm][f.id]=1}}
+function autoFixed(){var n=new Date(),mm=ym(n),did=false;S.fpaid=S.fpaid||{};S.fpaid[mm]=S.fpaid[mm]||{};S.fixed.forEach(function(f){var a=acctById(f.acct);if(!a||!(+f.amt>0)||S.fpaid[mm][f.id]||!isDue(f,mm))return;var pd=Math.min(f.day||1,dim(mm));if(n.getDate()<pd)return;var g=r2(f.amt/rate(a.cur));S.xfer.push({id:uid(),date:mm+"-"+pad(pd),from:a.id,to:"",amt:g,got:0,note:"固定支出："+f.name+"（自動扣款）",auto:1});a.bal=r2((+a.bal||0)-g);S.fpaid[mm][f.id]=1;did=true});if(did)save();return did}
 var tT;function toast(msg){var el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=msg;el.className="show";clearTimeout(tT);tT=setTimeout(function(){el.className=""},2200)}
 function baseSalary(m){var b=S.salary,best="";(S.raises||[]).forEach(function(r){if(r.from<=m&&r.from>=best){best=r.from;b=+r.amt||0}});return b}
 function salaryOf(m){return S.salOv&&S.salOv[m]!=null?+S.salOv[m]:baseSalary(m)}
@@ -187,8 +192,8 @@ function renderLog(){
 function renderSet(){
   var h='<div class="box"><h2>薪水與儲蓄</h2><div class="grid"><div><label for="ss">每月薪水</label><input id="ss" type="number" inputmode="decimal" min="0" value="'+(S.salary||"")+'"></div><div><label for="sr">儲蓄比例（%）</label><input id="sr" type="number" min="0" max="100" value="'+S.rate+'"></div></div><div style="margin-top:12px"><label for="so">'+view.replace("-","年")+'月實領月薪（有請假扣薪時填，留空＝'+nt(baseSalary(view))+'）</label><input id="so" type="number" inputmode="decimal" min="0" value="'+(S.salOv&&S.salOv[view]!=null?S.salOv[view]:"")+'" placeholder="'+baseSalary(view)+'"></div><div style="margin-top:12px"><label for="pa">薪水自動入帳到哪個帳戶（發薪日在下方「提醒」設定）</label><select id="pa"><option value="">不自動入帳</option>'+acctOpts(S.payAcct||"")+'</select></div><div class="row" style="margin-top:10px"><b>每月應存</b><b>'+nt(monthSave())+'</b></div><div class="row"><span>固定支出後可自由花費</span><span>'+nt(autoCap())+'</span></div><p class="mute" style="margin:8px 0 0">每月應存等於月薪乘以儲蓄比例。常見參考是固定支出約 50%、自由花費 30%、儲蓄 20%。</p></div>';
   h+='<div class="box"><h2>每月固定支出</h2><div id="fl">';
-  S.fixed.forEach(function(f){h+='<div class="g3" data-fid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="項目"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額"><button class="x" data-fdel="'+f.id+'">刪除</button></div>'});
-  h+='</div><div class="g3"><input id="fn" placeholder="項目，例如房租" aria-label="新項目"><input id="fa" type="number" inputmode="decimal" placeholder="金額" aria-label="新金額"><button id="fadd">新增</button></div><div class="mute">固定支出合計 '+nt(fixedSum())+'</div></div>';
+  S.fixed.forEach(function(f){h+='<div class="g3" data-fid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="項目"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額"><button class="x" data-fdel="'+f.id+'">刪除</button><select data-k="acct" style="grid-column:1/3" aria-label="扣款帳戶"><option value="">不自動扣款</option>'+acctOpts(f.acct||"")+'</select><input data-k="day" type="number" min="1" max="31" inputmode="numeric" value="'+(f.day||1)+'" style="width:76px" aria-label="每月扣款日（號）" title="每月扣款日"><select data-k="every" style="grid-column:1/-1" aria-label="繳費週期">'+evOpts(f.every)+'</select>'+((+f.every||1)>1?'<span class="mute" style="grid-column:1/-1">首次繳費月份（之後每 '+f.every+' 個月繳一次，費用平均攤到每月）</span><input data-k="start" type="month" value="'+esc(f.start||"")+'" style="grid-column:1/-1" aria-label="首次繳費月份">':'')+'</div>'});
+  h+='</div><div class="g3"><input id="fn" placeholder="項目，例如房租" aria-label="新項目"><input id="fa" type="number" inputmode="decimal" placeholder="金額" aria-label="新金額"><button id="fadd">新增</button></div><div class="mute">固定支出合計 '+nt(fixedSum())+'。每筆下方可選扣款帳戶，右邊數字是每月幾號扣款（外幣帳戶會依匯率換算）。兩個月繳一次等週期費用，計算時已平均到每月。</div></div>';
   h+='<div class="box"><h2>調薪紀錄</h2>';
   (S.raises||[]).slice().sort(function(a,b){return a.from<b.from?-1:1}).forEach(function(r){h+='<div class="g3"><span>'+r.from.replace("-","年")+'月起</span><span>'+nt(r.amt)+'</span><button class="x" data-rdel="'+r.id+'">刪除</button></div>'});
   h+='<div class="grid" style="margin-top:6px"><div><label for="rf">生效月份</label><input id="rf" type="month"></div><div><label for="ra">調整後月薪</label><input id="ra" type="number" inputmode="decimal" min="0" placeholder="0"></div></div><p style="margin:10px 0 0"><button id="radd">新增調薪</button></p><p class="mute" style="margin:8px 0 0">調薪只影響生效月份之後，過去月份的計算不會變。上方填的月薪，是第一筆調薪之前使用的金額。</p></div>';
@@ -218,7 +223,7 @@ function renderSet(){
   $("st").onchange=function(){S.dtime=this.value||"21:00";save();checkAlerts()};
   $("sd").onchange=function(){S.daily=this.checked;save();checkAlerts()};
   $("fadd").onclick=function(){var n=$("fn").value.trim(),a=parseFloat($("fa").value);if(!n||!(a>=0)){toast("請輸入項目名稱和金額");$("fn").focus();return}S.fixed.push({id:uid(),name:n,amt:a});save();toast("✓ 已新增固定支出");renderAll()};
-  document.querySelectorAll("[data-fid] input").forEach(function(i){i.onchange=function(){var f=S.fixed.filter(function(x){return x.id===i.parentNode.dataset.fid})[0];if(!f)return;if(i.dataset.k==="amt")f.amt=+i.value||0;else f.name=i.value;save();renderAll()}});
+  document.querySelectorAll("[data-fid] input,[data-fid] select").forEach(function(i){i.onchange=function(){var f=S.fixed.filter(function(x){return x.id===i.parentNode.dataset.fid})[0];if(!f)return;if(i.dataset.k==="amt")f.amt=+i.value||0;else if(i.dataset.k==="acct"){f.acct=i.value;fMark(f)}else if(i.dataset.k==="day"){f.day=Math.min(31,Math.max(1,+i.value||1));fMark(f)}else if(i.dataset.k==="every"){f.every=+i.value||1;if(f.every>1&&!f.start)f.start=ym(new Date());fMark(f)}else if(i.dataset.k==="start"){if(/^\d{4}-\d{2}$/.test(i.value)){f.start=i.value;fMark(f)}}else f.name=i.value;save();renderAll()}});
   document.querySelectorAll("[data-fdel]").forEach(function(b){b.onclick=function(){S.fixed=S.fixed.filter(function(x){return x.id!==b.dataset.fdel});save();toast("✓ 已刪除固定支出");renderAll()}});
   $("sn").onclick=function(){if(!("Notification" in window)){alert("這個瀏覽器不支援通知，會改用頁面內的提醒橫幅。");return}Notification.requestPermission().then(function(p){alert(p==="granted"?"已開啟通知。":"尚未允許通知，會改用頁面內的提醒橫幅。")})};
   document.querySelectorAll("[data-theme-set]").forEach(function(b){b.onclick=function(){S.theme=b.dataset.themeSet;save();toast("✓ 已切換外觀");renderAll()}});
@@ -254,7 +259,7 @@ function setTab(t){
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
 }
 function renderAll(){
-  autoPay();applyTheme();
+  autoPay();autoFixed();applyTheme();
   $("ml").textContent=view.replace("-","年")+"月";
   renderHome();renderLog();renderSet();checkAlerts();foldify();
 }
@@ -263,8 +268,8 @@ $("pm").onclick=function(){view=shift(view,-1);renderAll()};
 $("nm").onclick=function(){view=shift(view,1);renderAll()};
 $("set").addEventListener("change",function(e){if(e.target.type==="file")return;toast("✓ 已儲存")});
 renderAll();
-setInterval(function(){if(autoPay())renderAll();else checkAlerts()},60000);
-document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoPay())renderAll();else checkAlerts()}});
+setInterval(function(){if(autoPay()|autoFixed())renderAll();else checkAlerts()},60000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoPay()|autoFixed())renderAll();else checkAlerts()}});
 })();
 </script>
 </body>
