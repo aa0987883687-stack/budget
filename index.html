@@ -65,6 +65,8 @@ h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;b
 .box.shut h2.fold::after{transform:rotate(-45deg);margin-bottom:0}
 .box.shut>*:not(h2.fold){display:none}
 .box.shut h2.fold{margin-bottom:0}
+#toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:6px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -106,6 +108,7 @@ function $(id){return document.getElementById(id)}
 function autoCap(m){return Math.max(0,salaryOf(m||ym(new Date()))-fixedSum()-baseSalary(m||ym(new Date()))*S.rate/100)}
 function cap(m){return S.cap>0?S.cap:autoCap(m)}
 function monthSave(){return baseSalary(ym(new Date()))*S.rate/100}
+var tT;function toast(msg){var el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=msg;el.className="show";clearTimeout(tT);tT=setTimeout(function(){el.className=""},2200)}
 function baseSalary(m){var b=S.salary,best="";(S.raises||[]).forEach(function(r){if(r.from<=m&&r.from>=best){best=r.from;b=+r.amt||0}});return b}
 function salaryOf(m){return S.salOv&&S.salOv[m]!=null?+S.salOv[m]:baseSalary(m)}
 function autoPay(){var a=acctById(S.payAcct);if(!a||!(salaryOf(ym(new Date()))>0))return false;var n=new Date(),mm=ym(n);S.paid=S.paid||{};if(S.paid[mm])return false;var pd=Math.min(S.payday,dim(mm));if(n.getDate()<pd)return false;var g=r2(salaryOf(mm)/rate(a.cur));if(!(g>0)){S.paid[mm]=1;save();return false}S.xfer.push({id:uid(),date:mm+"-"+pad(pd),from:"",to:a.id,amt:g,got:g,note:"薪水自動入帳",auto:1});a.bal=r2((+a.bal||0)+g);S.paid[mm]=1;save();return true}
@@ -136,8 +139,8 @@ function bindXfer(){if(!$("xadd"))return;
   ["xf","xt","xa"].forEach(function(id){$(id).oninput=calc;$(id).onchange=calc});
   $("xadd").onclick=function(){var f=$("xf").value,t=$("xt").value,a=parseFloat($("xa").value),d=$("xd").value;if(!(a>0)||!d||(!f&&!t)||f===t){alert("請選擇兩個不同的帳戶（或外部），並輸入金額。");return}
     var fa=acctById(f),ta=acctById(t),g=parseFloat($("xg").value);if(!(g>0))g=(fa&&ta)?a*rate(fa.cur)/rate(ta.cur):a;g=r2(g);
-    S.xfer.push({id:uid(),date:d,from:f,to:t,amt:a,got:g,note:$("xn").value.trim()});if(fa)fa.bal=r2((+fa.bal||0)-a);if(ta)ta.bal=r2((+ta.bal||0)+g);save();renderAll()};
-  document.querySelectorAll("[data-xdel]").forEach(function(b){b.onclick=function(){var x=S.xfer.filter(function(y){return y.id===b.dataset.xdel})[0];if(x){var fa=acctById(x.from),ta=acctById(x.to);if(fa)fa.bal=r2((+fa.bal||0)+x.amt);if(ta)ta.bal=r2((+ta.bal||0)-x.got)}S.xfer=S.xfer.filter(function(y){return y.id!==b.dataset.xdel});save();renderAll()}})}
+    S.xfer.push({id:uid(),date:d,from:f,to:t,amt:a,got:g,note:$("xn").value.trim()});if(fa)fa.bal=r2((+fa.bal||0)-a);if(ta)ta.bal=r2((+ta.bal||0)+g);save();toast("✓ 已記錄轉帳");renderAll()};
+  document.querySelectorAll("[data-xdel]").forEach(function(b){b.onclick=function(){var x=S.xfer.filter(function(y){return y.id===b.dataset.xdel})[0];if(x){var fa=acctById(x.from),ta=acctById(x.to);if(fa)fa.bal=r2((+fa.bal||0)+x.amt);if(ta)ta.bal=r2((+ta.bal||0)-x.got)}S.xfer=S.xfer.filter(function(y){return y.id!==b.dataset.xdel});save();toast("✓ 已刪除轉帳紀錄");renderAll()}})}
 function acctTotal(){return (S.accts||[]).filter(function(a){return a.on}).reduce(function(t,a){return t+toTWD(a)},0)}
 function acctBox(){var L=(S.accts||[]).filter(function(a){return a.on}),h='<div class="box"><h2>存款總覽</h2>';if(!L.length)return h+'<p class="mute" style="margin:0 0 10px">還沒有設定存款帳戶，到設定新增銀行或現金錢包。</p><button data-go="set">前往設定</button></div>';L.forEach(function(a){h+='<div class="row"><span>'+esc(a.name)+'</span><span>'+fmt(+a.bal||0,a.cur)+((a.cur||"TWD")!=="TWD"?'<span class="mute">（約 '+nt(toTWD(a))+'）</span>':'')+'</span></div>'});return h+'<div class="row"><b>合計（折合台幣）</b><b>'+nt(acctTotal())+'</b></div></div>'}
 var PC=["#4A7C52","#3D6B76","#B5412F","#B8892E","#7A5C8A","#8A9A7B"];
@@ -176,7 +179,7 @@ function renderLog(){
   h+='</div>';$("log").innerHTML=h;
   bindXfer();
   $("lk").onchange=function(){var a=acctById(this.value);$("lal").textContent="金額（"+(a?(a.cur||"TWD"):"TWD")+"）"};
-  $("ladd").onclick=function(){var a=parseFloat($("la").value),d=$("ld").value;if(!(a>0)||!d){$("la").focus();return}var v=$("lc").value,k=$("lk").value,ty=v.charAt(0)==="i"?"in":"out",ac=acctById(k),c=ac?(ac.cur||"TWD"):"TWD",tw=r2(a*rate(c));S.tx.push({id:uid(),date:d,cat:v.slice(2),type:ty,acct:k,amt:tw,oc:c,oa:a,note:$("ln").value.trim()});if(ac)ac.bal=r2((+ac.bal||0)+(ty==="in"?a:-a));save();renderAll()};
+  $("ladd").onclick=function(){var a=parseFloat($("la").value),d=$("ld").value;if(!(a>0)||!d){toast("請輸入金額");$("la").focus();return}var v=$("lc").value,k=$("lk").value,ty=v.charAt(0)==="i"?"in":"out",ac=acctById(k),c=ac?(ac.cur||"TWD"):"TWD",tw=r2(a*rate(c));S.tx.push({id:uid(),date:d,cat:v.slice(2),type:ty,acct:k,amt:tw,oc:c,oa:a,note:$("ln").value.trim()});if(ac)ac.bal=r2((+ac.bal||0)+(ty==="in"?a:-a));save();toast(ty==="in"?"✓ 已新增收入":"✓ 已新增支出");renderAll()};
   $("la").onkeydown=function(e){if(e.key==="Enter")$("ladd").click()};
   bind();
 }
@@ -202,23 +205,23 @@ function renderSet(){
   $("so").onchange=function(){S.salOv=S.salOv||{};if(this.value==="")delete S.salOv[view];else S.salOv[view]=Math.max(0,+this.value||0);save();renderAll()};
   $("pa").onchange=function(){S.payAcct=this.value;S.paid=S.paid||{};var n=new Date(),mm=ym(n);if(this.value&&n.getDate()>=Math.min(S.payday,dim(mm)))S.paid[mm]=1;save();renderAll()};
   $("sr").onchange=function(){S.rate=Math.min(100,Math.max(0,+this.value||0));save();renderAll()};
-  $("aadd").onclick=function(){var n=$("an").value.trim(),b=parseFloat($("ab").value)||0;if(!n){$("an").focus();return}S.accts.push({id:uid(),name:n,bal:b,cur:$("ac").value,on:true});save();renderAll()};
+  $("aadd").onclick=function(){var n=$("an").value.trim(),b=parseFloat($("ab").value)||0;if(!n){toast("請輸入帳戶名稱");$("an").focus();return}S.accts.push({id:uid(),name:n,bal:b,cur:$("ac").value,on:true});save();toast("✓ 已新增帳戶");renderAll()};
   document.querySelectorAll("[data-aid] input,[data-aid] select").forEach(function(i){i.onchange=function(){var id=i.closest("[data-aid]").dataset.aid,a=S.accts.filter(function(x){return x.id===id})[0];if(!a)return;if(i.dataset.k==="on")a.on=i.checked;else if(i.dataset.k==="bal")a.bal=+i.value||0;else if(i.dataset.k==="cur")a.cur=i.value;else a.name=i.value;save();renderAll()}});
-  $("radd").onclick=function(){var f=$("rf").value,a=parseFloat($("ra").value);if(!/^\d{4}-\d{2}$/.test(f)||!(a>=0)){alert("請選擇生效月份並輸入調整後月薪。");return}S.raises=(S.raises||[]).filter(function(r){return r.from!==f});S.raises.push({id:uid(),from:f,amt:a});save();renderAll()};
-  document.querySelectorAll("[data-rdel]").forEach(function(b){b.onclick=function(){S.raises=S.raises.filter(function(r){return r.id!==b.dataset.rdel});save();renderAll()}});
+  $("radd").onclick=function(){var f=$("rf").value,a=parseFloat($("ra").value);if(!/^\d{4}-\d{2}$/.test(f)||!(a>=0)){alert("請選擇生效月份並輸入調整後月薪。");return}S.raises=(S.raises||[]).filter(function(r){return r.from!==f});S.raises.push({id:uid(),from:f,amt:a});save();toast("✓ 已新增調薪");renderAll()};
+  document.querySelectorAll("[data-rdel]").forEach(function(b){b.onclick=function(){S.raises=S.raises.filter(function(r){return r.id!==b.dataset.rdel});save();toast("✓ 已刪除調薪紀錄");renderAll()}});
   document.querySelectorAll("[data-rate]").forEach(function(i){i.onchange=function(){S.rates=S.rates||{};S.rates[i.dataset.rate]=+i.value>0?+i.value:DR[i.dataset.rate];save();renderAll()}});
-  document.querySelectorAll("[data-adel]").forEach(function(b){b.onclick=function(){S.accts=S.accts.filter(function(x){return x.id!==b.dataset.adel});save();renderAll()}});
-  document.querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){if(S.accts.some(function(x){return x.name===b.dataset.chip}))return;S.accts.push({id:uid(),name:b.dataset.chip,bal:0,on:true});save();renderAll()}});
+  document.querySelectorAll("[data-adel]").forEach(function(b){b.onclick=function(){S.accts=S.accts.filter(function(x){return x.id!==b.dataset.adel});save();toast("✓ 已刪除帳戶");renderAll()}});
+  document.querySelectorAll("[data-chip]").forEach(function(b){b.onclick=function(){if(S.accts.some(function(x){return x.name===b.dataset.chip}))return;S.accts.push({id:uid(),name:b.dataset.chip,bal:0,on:true});save();toast("✓ 已新增帳戶");renderAll()}});
   $("sc").onchange=function(){S.cap=Math.max(0,+this.value||0);save();renderAll()};
   $("sw").onchange=function(){S.warn=Math.min(100,Math.max(1,+this.value||80));save();renderAll()};
   $("sp").onchange=function(){S.payday=Math.min(31,Math.max(1,+this.value||1));save();checkAlerts()};
   $("st").onchange=function(){S.dtime=this.value||"21:00";save();checkAlerts()};
   $("sd").onchange=function(){S.daily=this.checked;save();checkAlerts()};
-  $("fadd").onclick=function(){var n=$("fn").value.trim(),a=parseFloat($("fa").value);if(!n||!(a>=0)){$("fn").focus();return}S.fixed.push({id:uid(),name:n,amt:a});save();renderAll()};
+  $("fadd").onclick=function(){var n=$("fn").value.trim(),a=parseFloat($("fa").value);if(!n||!(a>=0)){toast("請輸入項目名稱和金額");$("fn").focus();return}S.fixed.push({id:uid(),name:n,amt:a});save();toast("✓ 已新增固定支出");renderAll()};
   document.querySelectorAll("[data-fid] input").forEach(function(i){i.onchange=function(){var f=S.fixed.filter(function(x){return x.id===i.parentNode.dataset.fid})[0];if(!f)return;if(i.dataset.k==="amt")f.amt=+i.value||0;else f.name=i.value;save();renderAll()}});
-  document.querySelectorAll("[data-fdel]").forEach(function(b){b.onclick=function(){S.fixed=S.fixed.filter(function(x){return x.id!==b.dataset.fdel});save();renderAll()}});
+  document.querySelectorAll("[data-fdel]").forEach(function(b){b.onclick=function(){S.fixed=S.fixed.filter(function(x){return x.id!==b.dataset.fdel});save();toast("✓ 已刪除固定支出");renderAll()}});
   $("sn").onclick=function(){if(!("Notification" in window)){alert("這個瀏覽器不支援通知，會改用頁面內的提醒橫幅。");return}Notification.requestPermission().then(function(p){alert(p==="granted"?"已開啟通知。":"尚未允許通知，會改用頁面內的提醒橫幅。")})};
-  document.querySelectorAll("[data-theme-set]").forEach(function(b){b.onclick=function(){S.theme=b.dataset.themeSet;save();renderAll()}});
+  document.querySelectorAll("[data-theme-set]").forEach(function(b){b.onclick=function(){S.theme=b.dataset.themeSet;save();toast("✓ 已切換外觀");renderAll()}});
   $("ex").onclick=function(){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="budget-"+ymd(new Date())+".json";a.click()};
   $("im").onclick=function(){$("imf").click()};
   $("imf").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var o=JSON.parse(r.result);if(!o||typeof o!=="object"||!Array.isArray(o.tx))throw 0;for(var k in o)S[k]=o[k];save();renderAll();alert("匯入完成。")}catch(e){alert("檔案格式不正確。")}};r.readAsText(f)};
@@ -244,7 +247,7 @@ function checkAlerts(){
 
 function bind(){
   document.querySelectorAll("[data-go]").forEach(function(b){b.onclick=function(){setTab(b.dataset.go)}});
-  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var t0=S.tx.filter(function(t){return t.id===b.dataset.del})[0];if(t0&&t0.acct)adjT(t0);S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();renderAll()}});
+  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var t0=S.tx.filter(function(t){return t.id===b.dataset.del})[0];if(t0&&t0.acct)adjT(t0);S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();toast("✓ 已刪除這筆紀錄");renderAll()}});
 }
 function setTab(t){
   tab=t;["home","log","set"].forEach(function(s){$(s).classList.toggle("hide",s!==t)});
@@ -258,6 +261,7 @@ function renderAll(){
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){setTab(b.dataset.t)}});
 $("pm").onclick=function(){view=shift(view,-1);renderAll()};
 $("nm").onclick=function(){view=shift(view,1);renderAll()};
+$("set").addEventListener("change",function(e){if(e.target.type==="file")return;toast("✓ 已儲存")});
 renderAll();
 setInterval(function(){if(autoPay())renderAll();else checkAlerts()},60000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoPay())renderAll();else checkAlerts()}});
