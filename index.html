@@ -73,6 +73,9 @@ h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;b
 .lk{display:block;cursor:pointer;padding:3px 0;-webkit-tap-highlight-color:transparent}.lk:hover{text-decoration:underline}.lk.on{font-weight:700;color:var(--jade)}
 .leg.col{flex-direction:column;gap:2px}
 .dt{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line)}
+nav button{padding:8px 10px}#bell{margin-left:auto;position:relative;padding:8px 12px}#bdot{display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--coral)}
+details{border-top:1px dashed var(--line);padding:8px 0}details:first-of-type{border-top:0}summary{cursor:pointer;font-weight:700}details p,details li{margin:6px 0;font-size:15px}details ol{padding-left:20px;margin:6px 0}
+.nw{padding:8px 0;border-top:1px dashed var(--line)}.nw:first-of-type{border-top:0}.nw ul{margin:6px 0 0;padding-left:20px}.nw li{margin:3px 0;font-size:15px}.tag{display:inline-block;background:var(--coral);color:#F6F1E4;font-size:12px;padding:0 8px;border-radius:10px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -86,10 +89,14 @@ h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;b
   <button role="tab" data-t="home" aria-selected="true">總覽</button>
   <button role="tab" data-t="log" aria-selected="false">記帳</button>
   <button role="tab" data-t="set" aria-selected="false">設定</button>
+  <button role="tab" data-t="help" aria-selected="false">使用說明</button>
+  <button id="bell" role="tab" data-t="news" aria-selected="false" aria-label="更新提示"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i id="bdot"></i></button>
 </nav>
 <section id="home"></section>
 <section id="log" class="hide"></section>
 <section id="set" class="hide"></section>
+<section id="help" class="hide"></section>
+<section id="news" class="hide"></section>
 </main>
 <script>
 (function(){
@@ -153,6 +160,32 @@ function anaBox(m){var V=S.vp=S.vp||{},r=V.r||"m",b=V.b||"c",tm=V.t||"c",yr=r===
   h+='<div class="row"><span>月薪'+(!yr&&S.salOv&&S.salOv[m]!=null?"（當月調整）":"")+'</span><span>'+nt(T.sal)+'</span></div><div class="row"><span>其他收入</span><span>'+nt(T.oth)+'</span></div><div class="row"><span>固定支出</span><span>'+nt(T.fx)+'</span></div><div class="row"><span>記帳開銷</span><span>'+nt(T.sp)+'</span></div><div class="row"><b>'+(yr?"本年存下":"本月存下")+'</b><b style="'+(saved<0?"color:var(--coral)":"")+'">'+nt(saved)+'</b></div>';
   h+='<div class="mute" style="margin:8px 0">儲蓄目標 '+nt(T.goal)+'，已達成 '+Math.round(pr)+'%</div><div class="prog"><i style="width:'+pr+'%"></i></div>';
   return h+'<div class="pr" style="margin-top:14px">'+pieX("out",D,tm==="t")+pieX("in",D,tm==="t")+'</div>'+anaDetail(D)+'</div>'}
+var VER="2.0",LOG=[
+{v:"2.0",t:"使用說明與更新提示",a:["新增「使用說明」分頁，整理各功能的用法","新增右上角鈴鐺，記錄每次更新的內容，有新版本時會出現紅點"]},
+{v:"1.9",t:"收支分析整合",a:["總覽頁把固定支出、類別圖表、收支列表合併成「收支分析」一個區塊","可切換月／年、依類別／依帳戶、圖表＋文字／純文字","點類別文字可展開該類別的明細","固定支出成為支出圖的一個類別，收入圖可切換是否含月薪"]},
+{v:"1.8",t:"修改與累計",a:["記帳明細與轉帳紀錄都能「修改」，帳戶餘額會自動修正","收入類別調整為：發票中獎、轉帳收入、利息、零用錢、其他收入","固定支出可設定「轉入累計帳戶」，方便記錄某筆總共付了多少","刪除自動扣款紀錄時，會一併解除「已處理」標記，可重新記錄"]},
+{v:"1.7",t:"固定支出自動化",a:["固定支出可選扣款帳戶與扣款日，到期自動扣款","支援每 2、3、6 個月或每年繳的費用，會平均攤到每月計算","新增「本月已付」與「預付下個月」按鈕"]},
+{v:"1.6",t:"薪資設定",a:["薪水可自動入帳到指定帳戶","可為單一月份填「當月實領月薪」（例如請假扣薪）","新增「調薪紀錄」，調薪只影響生效月份之後"]},
+{v:"1.5",t:"介面與提示",a:["每個區塊標題可點擊收起、展開，並會記住狀態","新增、刪除、儲存都會跳出提示","修正 iPhone 日期欄位與其他欄位重疊的問題"]},
+{v:"1.4",t:"淺綠竹林外觀",a:["改為淺綠、明體、竹子與印章風格","設定頁可切換「淺色竹林」與「深色夜林」"]},
+{v:"1.3",t:"收入、幣別與轉帳",a:["可記錄其他收入","存款帳戶可選幣別（台幣、美元、日圓等）並設定匯率","新增提領與轉帳，跨幣別會自動換算","選外幣帳戶記帳時，金額以該帳戶幣別輸入"]},
+{v:"1.2",t:"存款帳戶",a:["可自訂銀行與現金錢包，並設定目前哪些帳戶有存款","總覽顯示存款總覽與合計"]},
+{v:"1.1",t:"圖表與預算",a:["支出類別比例圖","每月預算上限提醒，可設定提早警告比例"]},
+{v:"1.0",t:"初版",a:["輸入月薪與固定支出，自動算出每月該存多少、每天能花多少","記帳、每月與每日提醒、累計已存","資料保存在瀏覽器，可匯出與匯入備份"]}];
+function updDot(){var d=$("bdot");if(d)d.style.display=S.seenVer===VER?"none":"block"}
+function renderNews(){var h='<div class="box news"><h2>更新提示</h2>';LOG.forEach(function(e,i){h+='<div class="nw"><b>v'+e.v+'　'+e.t+'</b>'+(i===0?' <span class="tag">最新</span>':'')+'<ul>'+e.a.map(function(x){return '<li>'+x+'</li>'}).join("")+'</ul></div>'});$("news").innerHTML=h+'</div>'}
+function renderHelp(){var T=[
+["快速開始",'<ol><li>到「設定」填「每月薪水」（填扣完勞健保的實拿金額）和儲蓄比例。</li><li>在「每月固定支出」新增房租、保險、訂閱費等。</li><li>每天到「記帳」記下花費，回「總覽」看今天還能花多少。</li></ol>'],
+["薪水、調薪與扣薪",'<p>月薪填實拿金額，薪水算在「入帳的那個月」。</p><p><b>加薪</b>：到設定的「調薪紀錄」，選實際領到新薪水的月份並填新金額，過去的月份不受影響。</p><p><b>某個月被扣薪</b>：在設定的「○年○月實領月薪」填那個月實際拿到的金額，只影響該月。</p><p>薪水不要記在「收入」，收入是給發票中獎、利息、零用錢這類額外的錢。</p>'],
+["固定支出",'<p>固定支出每月會自動算進分配，<b>不需要再記帳</b>。</p><p>每筆可設定扣款帳戶、每月幾號扣款、繳費週期（每月、每 2 個月、每年等，週期費用會平均攤到每月計算）。</p><p>「本月已付」「預付下個月」會立即扣款並標記已處理，之後不會重複扣。</p><p>想累計某筆總共付了多少（例如孝親費），可在存款帳戶新增一個累計用帳戶（取消勾選「目前有存款」），並在那一筆選「轉入累計帳戶」。</p>'],
+["記帳",'<p>在「記帳」選支出或收入的類別、填金額，也可以選帳戶。選了帳戶，會自動增減該帳戶的餘額；外幣帳戶以該帳戶的幣別輸入。</p><p>每筆明細都能「修改」或「刪除」，餘額會自動修正。</p>'],
+["存款帳戶與匯率",'<p>在設定新增銀行或現金錢包，可選幣別。只有勾選「目前有存款」的帳戶才會算進存款總覽。</p><p>外幣帳戶用設定頁的匯率折合台幣。預設匯率只是概略估計，請自行更新。</p>'],
+["提領與轉帳",'<p>提領現金，就是從銀行轉到現金錢包。「從」選外部存入，「到」選領出，代表錢進出你追蹤的範圍。</p><p>跨幣別會依匯率自動換算，轉入金額也可以自己修改。</p>'],
+["收支分析",'<p>總覽的「收支分析」可切換月／年、依類別／依帳戶、圖表＋文字／純文字。</p><p>點圖例旁邊的類別文字，會展開那個類別的明細。固定支出也是支出的一個類別。</p><p>轉帳與提領不算收支，只是帳戶之間的移動。</p>'],
+["提醒",'<p>可設定每月提醒日與每日記帳提醒時間，花到預算上限的比例時也會提醒。</p><p>提醒只會在頁面開著時出現，網頁無法在背景推播。薪水自動入帳、固定支出自動扣款，也是在你打開頁面時才會執行。</p>'],
+["資料與備份",'<p>資料只存在這個瀏覽器裡。換手機或清除資料前，請先到設定按「匯出 JSON」，在新的裝置再「匯入 JSON」。</p>'],
+["常見問題",'<p><b>帳戶餘額和預期不一樣？</b>記帳時沒有選帳戶，就不會動到餘額。可以用「提領或轉帳」補一筆，或到設定直接改餘額。</p><p><b>按「本月已付」說已經扣過？</b>可能這個月已經自動處理。如果紀錄被刪掉，再按一次就能重新記錄。</p><p><b>固定支出金額改了，過去月份也變了？</b>固定支出沒有保存歷史金額，統計會用目前設定的金額。</p>']];
+var h='<div class="box"><h2>使用說明</h2>';T.forEach(function(x,i){h+='<details'+(i===0?' open':'')+'><summary>'+x[0]+'</summary>'+x[1]+'</details>'});$("help").innerHTML=h+'</div>'}
 function fMark(f){if(!f.acct&&!f.to)return;var n=new Date(),mm=ym(n);S.fpaid=S.fpaid||{};if(n.getDate()>=Math.min(f.day||1,dim(mm))){S.fpaid[mm]=S.fpaid[mm]||{};S.fpaid[mm][f.id]=1}}
 function autoFixed(){var n=new Date(),mm=ym(n),did=false;S.fpaid=S.fpaid||{};S.fpaid[mm]=S.fpaid[mm]||{};S.fixed.forEach(function(f){var a=acctById(f.acct),ta=acctById(f.to);if((!a&&!ta)||!(+f.amt>0)||S.fpaid[mm][f.id]||!isDue(f,mm))return;var pd=Math.min(f.day||1,dim(mm));if(n.getDate()<pd)return;fxfer(f,a,ta,mm+"-"+pad(pd),"自動扣款",mm);S.fpaid[mm][f.id]=1;did=true});if(did)save();return did}
 var tT;function toast(msg){var el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=msg;el.className="show";clearTimeout(tT);tT=setTimeout(function(){el.className=""},2200)}
@@ -299,13 +332,13 @@ function bind(){
   document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var t0=S.tx.filter(function(t){return t.id===b.dataset.del})[0];if(t0&&t0.acct)adjT(t0);S.tx=S.tx.filter(function(t){return t.id!==b.dataset.del});save();toast("✓ 已刪除這筆紀錄");renderAll()}});
 }
 function setTab(t){
-  tab=t;["home","log","set"].forEach(function(s){$(s).classList.toggle("hide",s!==t)});
+  tab=t;["home","log","set","help","news"].forEach(function(s){$(s).classList.toggle("hide",s!==t)});if(t==="news"){S.seenVer=VER;save();updDot()}
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
 }
 function renderAll(){
   autoPay();autoFixed();applyTheme();
   $("ml").textContent=view.replace("-","年")+"月";
-  renderHome();renderLog();renderSet();checkAlerts();foldify();
+  renderHome();renderLog();renderSet();renderHelp();renderNews();checkAlerts();foldify();updDot();
 }
 document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){setTab(b.dataset.t)}});
 $("pm").onclick=function(){view=shift(view,-1);renderAll()};
