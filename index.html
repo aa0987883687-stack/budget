@@ -67,7 +67,7 @@ h2.fold::after{content:"";flex:none;width:8px;height:8px;margin:0 4px 4px 12px;b
 .box.shut h2.fold{margin-bottom:0}
 #toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:6px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
-[data-fid]{padding-bottom:8px;border-bottom:1px dashed var(--line);margin-bottom:10px}
+[data-fid],[data-rcid]{padding-bottom:8px;border-bottom:1px dashed var(--line);margin-bottom:10px}
 .pr{display:flex;flex-wrap:wrap;gap:20px 24px}.pw{flex:1 1 260px;min-width:0}.pw h3{margin:0 0 8px;font-size:15px}.pw .pie svg{width:130px;height:130px}.pw .pie .leg{min-width:140px}
 .seg{display:inline-flex;margin:0 10px 8px 0}.seg button{padding:4px 12px;border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}.seg button:last-child{border-radius:0 4px 4px 0}
 .lk{display:block;cursor:pointer;padding:3px 0;-webkit-tap-highlight-color:transparent}.lk:hover{text-decoration:underline}.lk.on{font-weight:700;color:var(--jade)}
@@ -160,7 +160,8 @@ function anaBox(m){var V=S.vp=S.vp||{},r=V.r||"m",b=V.b||"c",tm=V.t||"c",yr=r===
   h+='<div class="row"><span>月薪'+(!yr&&S.salOv&&S.salOv[m]!=null?"（當月調整）":"")+'</span><span>'+nt(T.sal)+'</span></div><div class="row"><span>其他收入</span><span>'+nt(T.oth)+'</span></div><div class="row"><span>固定支出</span><span>'+nt(T.fx)+'</span></div><div class="row"><span>記帳開銷</span><span>'+nt(T.sp)+'</span></div><div class="row"><b>'+(yr?"本年存下":"本月存下")+'</b><b style="'+(saved<0?"color:var(--coral)":"")+'">'+nt(saved)+'</b></div>';
   h+='<div class="mute" style="margin:8px 0">儲蓄目標 '+nt(T.goal)+'，已達成 '+Math.round(pr)+'%</div><div class="prog"><i style="width:'+pr+'%"></i></div>';
   return h+'<div class="pr" style="margin-top:14px">'+pieX("out",D,tm==="t")+pieX("in",D,tm==="t")+'</div>'+anaDetail(D)+'</div>'}
-var VER="2.1",LOG=[
+var VER="2.2",LOG=[
+{v:"2.2",t:"定期轉帳",a:["設定新增「定期轉帳」，每月固定把錢從一個帳戶轉到另一個帳戶（例如定期定額買 ETF）","只在帳戶之間移動，不算支出，不影響「本月存下」","支援每 2、3、6 個月或每年，到期自動記錄，也有「本月已轉」「預先記下個月」按鈕","紀錄會出現在記帳頁的轉帳紀錄，刪除後可重新記錄","修正：刪除當月已到期的自動紀錄後，不會立刻又被自動補記一筆；要重新記錄時，按「本月已付」或「本月已轉」再確認一次即可"]},
 {v:"2.1",t:"薪水入帳改為手動按鈕",a:["總覽新增「薪水入帳」區塊，薪水一到，按「本月薪水已入帳」就會把實拿金額加到入帳帳戶，不用管發薪日","不再依日期自動入帳；設定的發薪日只用來提醒，已入帳的月份不會再提醒","刪除入帳紀錄會一併解除「已入帳」標記，可重新入帳","可切換到其他月份，提早入帳也能處理"]},
 {v:"2.0",t:"使用說明與更新提示",a:["新增「使用說明」分頁，整理各功能的用法","新增右上角鈴鐺，記錄每次更新的內容，有新版本時會出現紅點"]},
 {v:"1.9",t:"收支分析整合",a:["總覽頁把固定支出、類別圖表、收支列表合併成「收支分析」一個區塊","可切換月／年、依類別／依帳戶、圖表＋文字／純文字","點類別文字可展開該類別的明細","固定支出成為支出圖的一個類別，收入圖可切換是否含月薪"]},
@@ -181,7 +182,7 @@ function renderHelp(){var T=[
 ["固定支出",'<p>固定支出每月會自動算進分配，<b>不需要再記帳</b>。</p><p>每筆可設定扣款帳戶、每月幾號扣款、繳費週期（每月、每 2 個月、每年等，週期費用會平均攤到每月計算）。</p><p>「本月已付」「預付下個月」會立即扣款並標記已處理，之後不會重複扣。</p><p>想累計某筆總共付了多少（例如孝親費），可在存款帳戶新增一個累計用帳戶（取消勾選「目前有存款」），並在那一筆選「轉入累計帳戶」。</p>'],
 ["記帳",'<p>在「記帳」選支出或收入的類別、填金額，也可以選帳戶。選了帳戶，會自動增減該帳戶的餘額；外幣帳戶以該帳戶的幣別輸入。</p><p>每筆明細都能「修改」或「刪除」，餘額會自動修正。</p>'],
 ["存款帳戶與匯率",'<p>在設定新增銀行或現金錢包，可選幣別。只有勾選「目前有存款」的帳戶才會算進存款總覽。</p><p>外幣帳戶用設定頁的匯率折合台幣。預設匯率只是概略估計，請自行更新。</p>'],
-["提領與轉帳",'<p>提領現金，就是從銀行轉到現金錢包。「從」選外部存入，「到」選領出，代表錢進出你追蹤的範圍。</p><p>跨幣別會依匯率自動換算，轉入金額也可以自己修改。</p>'],
+["提領與轉帳",'<p>提領現金，就是從銀行轉到現金錢包。「從」選外部存入，「到」選領出，代表錢進出你追蹤的範圍。</p><p>跨幣別會依匯率自動換算，轉入金額也可以自己修改。</p><p>每月固定轉一筆（例如定期定額買 ETF），可到設定的「定期轉帳」設定轉出、轉入帳戶和日期，到期自動記錄，不會算成支出。</p>'],
 ["收支分析",'<p>總覽的「收支分析」可切換月／年、依類別／依帳戶、圖表＋文字／純文字。</p><p>點圖例旁邊的類別文字，會展開那個類別的明細。固定支出也是支出的一個類別。</p><p>轉帳與提領不算收支，只是帳戶之間的移動。</p>'],
 ["提醒",'<p>可設定每月提醒日與每日記帳提醒時間，花到預算上限的比例時也會提醒。</p><p>提醒只會在頁面開著時出現，網頁無法在背景推播。固定支出自動扣款，也是在你打開頁面時才會執行。</p>'],
 ["資料與備份",'<p>資料只存在這個瀏覽器裡。換手機或清除資料前，請先到設定按「匯出 JSON」，在新的裝置再「匯入 JSON」。</p>'],
@@ -194,6 +195,12 @@ function salBox(m){var a=acctById(S.payAcct),sv=salaryOf(m),paid=S.paid&&S.paid[
   var h='<div class="box"><h2>薪水入帳</h2><div class="row"><span>'+m.replace("-","年")+'月實拿月薪</span><span>'+nt(sv)+'</span></div>';
   h+='<div class="mute" style="margin:6px 0 10px">'+(a?'入帳帳戶：'+esc(a.name)+(paid?'（本月已入帳）':'（尚未入帳）'):'尚未設定入帳帳戶，薪水只會計入統計，不會動帳戶餘額。')+'</div>';
   return h+(a?'<button'+(paid?'':' class="p"')+' data-paysal="1">'+(paid?'✓ 本月薪水已入帳':'本月薪水已入帳')+'</button>':'<button data-go="set">選擇入帳帳戶</button>')+'</div>'}
+function rxfer(f,a,ta,date,tag,fm){var g=a?r2(f.amt/rate(a.cur)):0,h2=ta?r2(f.amt/rate(ta.cur)):0;S.xfer.push({id:uid(),date:date,from:a?a.id:"",to:ta?ta.id:"",amt:a?g:h2,got:ta?h2:0,note:"定期轉帳："+f.name+"（"+tag+"）",auto:1,fid:f.id,fm:fm});if(a)a.bal=r2((+a.bal||0)-g);if(ta)ta.bal=r2((+ta.bal||0)+h2)}
+function rMark(f){if(!f.from&&!f.to)return;var n=new Date(),mm=ym(n);S.fpaid=S.fpaid||{};if(n.getDate()>=Math.min(f.day||1,dim(mm))){S.fpaid[mm]=S.fpaid[mm]||{};S.fpaid[mm][f.id]=1}}
+function autoRec(){var n=new Date(),mm=ym(n),did=false;S.fpaid=S.fpaid||{};S.fpaid[mm]=S.fpaid[mm]||{};(S.rec||[]).forEach(function(f){var a=acctById(f.from),ta=acctById(f.to);if((!a&&!ta)||!(+f.amt>0)||S.fpaid[mm][f.id]||!isDue(f,mm))return;var pd=Math.min(f.day||1,dim(mm));if(n.getDate()<pd)return;rxfer(f,a,ta,mm+"-"+pad(pd),"自動",mm);S.fpaid[mm][f.id]=1;did=true});if(did)save();return did}
+function payRec(f,nx){var a=acctById(f.from),ta=acctById(f.to),n=new Date(),mm=nx?shift(ym(n),1):ym(n),w=nx?"下個月":"這個月";S.fpaid=S.fpaid||{};S.fpaid[mm]=S.fpaid[mm]||{};if(!a&&!ta)return "請先選擇轉出或轉入帳戶";if(!(+f.amt>0))return "金額要大於 0";if(!isDue(f,mm))return w+"不是這筆的轉帳月份";
+  if(S.fpaid[mm][f.id]){var has=S.xfer.some(function(x){return x.fid===f.id&&x.fm===mm});if(has)return w+"已經轉過了";var key=f.id+mm;if(rePay!==key){rePay=key;return "系統記得"+w+"已處理，但找不到對應的轉帳紀錄（可能已刪除）。再按一次就會重新記錄"}}
+  rePay=null;rxfer(f,a,ta,ymd(n),nx?"預先記下 "+(+mm.slice(5))+" 月":"手動",mm);S.fpaid[mm][f.id]=1;save();renderAll();return "✓ 已記錄這筆轉帳"}
 function fMark(f){if(!f.acct&&!f.to)return;var n=new Date(),mm=ym(n);S.fpaid=S.fpaid||{};if(n.getDate()>=Math.min(f.day||1,dim(mm))){S.fpaid[mm]=S.fpaid[mm]||{};S.fpaid[mm][f.id]=1}}
 function autoFixed(){var n=new Date(),mm=ym(n),did=false;S.fpaid=S.fpaid||{};S.fpaid[mm]=S.fpaid[mm]||{};S.fixed.forEach(function(f){var a=acctById(f.acct),ta=acctById(f.to);if((!a&&!ta)||!(+f.amt>0)||S.fpaid[mm][f.id]||!isDue(f,mm))return;var pd=Math.min(f.day||1,dim(mm));if(n.getDate()<pd)return;fxfer(f,a,ta,mm+"-"+pad(pd),"自動扣款",mm);S.fpaid[mm][f.id]=1;did=true});if(did)save();return did}
 var tT;function toast(msg){var el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=msg;el.className="show";clearTimeout(tT);tT=setTimeout(function(){el.className=""},2200)}
@@ -229,7 +236,7 @@ function bindXfer(){if(!$("xadd"))return;
     var fa=acctById(f),ta=acctById(t),g=parseFloat($("xg").value);if(!(g>0))g=(fa&&ta)?a*rate(fa.cur)/rate(ta.cur):a;g=r2(g);
     var xi=editX?S.xfer.map(function(y){return y.id}).indexOf(editX):-1,xr={id:uid(),date:d,from:f,to:t,amt:a,got:g,note:$("xn").value.trim()};if(xi>=0){var ox=S.xfer[xi],ofa=acctById(ox.from),ota=acctById(ox.to);if(ofa)ofa.bal=r2((+ofa.bal||0)+ox.amt);if(ota)ota.bal=r2((+ota.bal||0)-ox.got);xr.id=ox.id;if(ox.auto)xr.auto=1;if(ox.fid){xr.fid=ox.fid;xr.fm=ox.fm}S.xfer[xi]=xr;editX=null}else S.xfer.push(xr);if(fa)fa.bal=r2((+fa.bal||0)-a);if(ta)ta.bal=r2((+ta.bal||0)+g);save();toast(xi>=0?"✓ 已更新轉帳":"✓ 已記錄轉帳");renderAll()};
   document.querySelectorAll("[data-xedit]").forEach(function(b){b.onclick=function(){editX=b.dataset.xedit;editTx=null;renderAll();toast("請在上方修改後按「儲存修改」")}});
-  document.querySelectorAll("[data-xdel]").forEach(function(b){b.onclick=function(){var x=S.xfer.filter(function(y){return y.id===b.dataset.xdel})[0];if(x){if((x.fid==="salary"||x.note==="薪水自動入帳")&&S.paid)delete S.paid[x.fm||x.date.slice(0,7)];if(x.fid&&S.fpaid&&S.fpaid[x.fm])delete S.fpaid[x.fm][x.fid];var fa=acctById(x.from),ta=acctById(x.to);if(fa)fa.bal=r2((+fa.bal||0)+x.amt);if(ta)ta.bal=r2((+ta.bal||0)-x.got)}S.xfer=S.xfer.filter(function(y){return y.id!==b.dataset.xdel});save();toast("✓ 已刪除轉帳紀錄");renderAll()}})}
+  document.querySelectorAll("[data-xdel]").forEach(function(b){b.onclick=function(){var x=S.xfer.filter(function(y){return y.id===b.dataset.xdel})[0];if(x){if((x.fid==="salary"||x.note==="薪水自動入帳")&&S.paid)delete S.paid[x.fm||x.date.slice(0,7)];if(x.fid&&S.fpaid&&S.fpaid[x.fm]){var rf=(S.fixed||[]).concat(S.rec||[]).filter(function(i){return i.id===x.fid})[0],now0=new Date();if(x.fm>ym(now0)||!rf||now0.getDate()<Math.min(rf.day||1,dim(x.fm)))delete S.fpaid[x.fm][x.fid]}var fa=acctById(x.from),ta=acctById(x.to);if(fa)fa.bal=r2((+fa.bal||0)+x.amt);if(ta)ta.bal=r2((+ta.bal||0)-x.got)}S.xfer=S.xfer.filter(function(y){return y.id!==b.dataset.xdel});save();toast("✓ 已刪除轉帳紀錄");renderAll()}})}
 function acctTotal(){return (S.accts||[]).filter(function(a){return a.on}).reduce(function(t,a){return t+toTWD(a)},0)}
 function acctBox(){var L=(S.accts||[]).filter(function(a){return a.on}),h='<div class="box"><h2>存款總覽</h2>';if(!L.length)return h+'<p class="mute" style="margin:0 0 10px">還沒有設定存款帳戶，到設定新增銀行或現金錢包。</p><button data-go="set">前往設定</button>'+otherAcct()+'</div>';L.forEach(function(a){h+='<div class="row"><span>'+esc(a.name)+'</span><span>'+fmt(+a.bal||0,a.cur)+((a.cur||"TWD")!=="TWD"?'<span class="mute">（約 '+nt(toTWD(a))+'）</span>':'')+'</span></div>'});return h+'<div class="row"><b>合計（折合台幣）</b><b>'+nt(acctTotal())+'</b></div>'+otherAcct()+'</div>'}
 var PC=["#4A7C52","#3D6B76","#B5412F","#B8892E","#7A5C8A","#8A9A7B","#C27C5A","#5E8FA8"];
@@ -273,6 +280,9 @@ function renderSet(){
   h+='<div class="box"><h2>每月固定支出</h2><div id="fl">';
   S.fixed.forEach(function(f){h+='<div class="g3" data-fid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="項目"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額"><button class="x" data-fdel="'+f.id+'">刪除</button><select data-k="acct" style="grid-column:1/3" aria-label="扣款帳戶"><option value="">不自動扣款</option>'+acctOpts(f.acct||"")+'</select><input data-k="day" type="number" min="1" max="31" inputmode="numeric" value="'+(f.day||1)+'" style="width:76px" aria-label="每月扣款日（號）" title="每月扣款日"><select data-k="to" style="grid-column:1/-1" aria-label="轉入累計帳戶"><option value="">不轉入累計帳戶</option>'+acctOpts(f.to||"")+'</select><select data-k="every" style="grid-column:1/-1" aria-label="繳費週期">'+evOpts(f.every)+'</select>'+((+f.every||1)>1?'<span class="mute" style="grid-column:1/-1">首次繳費月份（之後每 '+f.every+' 個月繳一次，費用平均攤到每月）</span><input data-k="start" type="month" value="'+esc(f.start||"")+'" style="grid-column:1/-1" aria-label="首次繳費月份">':'')+'<button data-fpay="'+f.id+'" style="grid-column:1/-1">本月已付（立即從帳戶扣款）</button><button data-fnext="'+f.id+'" style="grid-column:1/-1">預付下個月（立即扣款）</button></div>'});
   h+='</div><div class="g3"><input id="fn" placeholder="項目，例如房租" aria-label="新項目"><input id="fa" type="number" inputmode="decimal" placeholder="金額" aria-label="新金額"><button id="fadd">新增</button></div><div class="mute">固定支出合計 '+nt(fixedSum())+'。每筆下方可選扣款帳戶，右邊數字是每月幾號扣款（外幣帳戶會依匯率換算）。兩個月繳一次等週期費用，計算時已平均到每月。想累計某筆總共付了多少，可先在存款帳戶新增一個累計用帳戶（取消勾選「目前有存款」），再在「轉入累計帳戶」選它。</div></div>';
+  h+='<div class="box"><h2>定期轉帳（不算支出）</h2><p class="mute" style="margin:0 0 10px">每月固定轉一筆錢，例如定期定額買 ETF。只在帳戶之間移動，不會算成支出，不影響「本月存下」。</p>';
+  (S.rec||[]).forEach(function(f){h+='<div class="g3" data-rcid="'+f.id+'"><input data-k="name" value="'+esc(f.name)+'" aria-label="名稱"><input data-k="amt" type="number" inputmode="decimal" value="'+f.amt+'" aria-label="金額（台幣）"><button class="x" data-rcdel="'+f.id+'">刪除</button><select data-k="from" style="grid-column:1/-1" aria-label="轉出帳戶"><option value="">轉出：外部（不扣任何帳戶）</option>'+acctOpts(f.from||"")+'</select><select data-k="to" style="grid-column:1/-1" aria-label="轉入帳戶"><option value="">轉入：領出（不再追蹤）</option>'+acctOpts(f.to||"")+'</select><select data-k="every" style="grid-column:1/3" aria-label="週期">'+evOpts(f.every)+'</select><input data-k="day" type="number" min="1" max="31" inputmode="numeric" value="'+(f.day||1)+'" style="width:76px" aria-label="每月轉帳日（號）">'+((+f.every||1)>1?'<span class="mute" style="grid-column:1/-1">首次轉帳月份</span><input data-k="start" type="month" value="'+esc(f.start||"")+'" style="grid-column:1/-1" aria-label="首次轉帳月份">':'')+'<button data-rcpay="'+f.id+'" style="grid-column:1/-1">本月已轉（立即記錄）</button><button data-rcnext="'+f.id+'" style="grid-column:1/-1">預先記下個月（立即記錄）</button></div>'});
+  h+='<div class="g3"><input id="rcn" placeholder="名稱，例如 0050 定期定額" aria-label="新名稱"><input id="rca" type="number" inputmode="decimal" placeholder="金額（台幣）" aria-label="新金額"><button id="rcadd">新增</button></div><div class="mute">金額以台幣填寫，外幣帳戶會依匯率換算。每筆下方選轉出、轉入帳戶和每月幾號。</div></div>';
   h+='<div class="box"><h2>調薪紀錄</h2>';
   (S.raises||[]).slice().sort(function(a,b){return a.from<b.from?-1:1}).forEach(function(r){h+='<div class="g3"><span>'+r.from.replace("-","年")+'月起</span><span>'+nt(r.amt)+'</span><button class="x" data-rdel="'+r.id+'">刪除</button></div>'});
   h+='<div class="grid" style="margin-top:6px"><div><label for="rf">生效月份</label><input id="rf" type="month"></div><div><label for="ra">調整後月薪</label><input id="ra" type="number" inputmode="decimal" min="0" placeholder="0"></div></div><p style="margin:10px 0 0"><button id="radd">新增調薪</button></p><p class="mute" style="margin:8px 0 0">調薪只影響生效月份之後，過去月份的計算不會變。上方填的月薪，是第一筆調薪之前使用的金額。</p></div>';
@@ -292,6 +302,11 @@ function renderSet(){
   $("aadd").onclick=function(){var n=$("an").value.trim(),b=parseFloat($("ab").value)||0;if(!n){toast("請輸入帳戶名稱");$("an").focus();return}S.accts.push({id:uid(),name:n,bal:b,cur:$("ac").value,on:true});save();toast("✓ 已新增帳戶");renderAll()};
   document.querySelectorAll("[data-aid] input,[data-aid] select").forEach(function(i){i.onchange=function(){var id=i.closest("[data-aid]").dataset.aid,a=S.accts.filter(function(x){return x.id===id})[0];if(!a)return;if(i.dataset.k==="on")a.on=i.checked;else if(i.dataset.k==="bal")a.bal=+i.value||0;else if(i.dataset.k==="cur")a.cur=i.value;else a.name=i.value;save();renderAll()}});
   $("radd").onclick=function(){var f=$("rf").value,a=parseFloat($("ra").value);if(!/^\d{4}-\d{2}$/.test(f)||!(a>=0)){alert("請選擇生效月份並輸入調整後月薪。");return}S.raises=(S.raises||[]).filter(function(r){return r.from!==f});S.raises.push({id:uid(),from:f,amt:a});save();toast("✓ 已新增調薪");renderAll()};
+  $("rcadd").onclick=function(){var n=$("rcn").value.trim(),a=parseFloat($("rca").value);if(!n||!(a>0)){toast("請輸入名稱和金額");$("rcn").focus();return}S.rec=S.rec||[];S.rec.push({id:uid(),name:n,amt:a,day:1,every:1});save();toast("✓ 已新增定期轉帳");renderAll()};
+  document.querySelectorAll("[data-rcid] input,[data-rcid] select").forEach(function(i){i.onchange=function(){var id=i.closest("[data-rcid]").dataset.rcid,f=(S.rec||[]).filter(function(x){return x.id===id})[0];if(!f)return;var k=i.dataset.k;if(k==="amt")f.amt=+i.value||0;else if(k==="from"||k==="to"){f[k]=i.value;rMark(f)}else if(k==="day"){f.day=Math.min(31,Math.max(1,+i.value||1));rMark(f)}else if(k==="every"){f.every=+i.value||1;if(f.every>1&&!f.start)f.start=ym(new Date());rMark(f)}else if(k==="start"){if(/^\d{4}-\d{2}$/.test(i.value)){f.start=i.value;rMark(f)}}else f.name=i.value;save();renderAll()}});
+  document.querySelectorAll("[data-rcdel]").forEach(function(b){b.onclick=function(){S.rec=S.rec.filter(function(x){return x.id!==b.dataset.rcdel});save();toast("✓ 已刪除定期轉帳");renderAll()}});
+  document.querySelectorAll("[data-rcpay]").forEach(function(b){b.onclick=function(){var f=S.rec.filter(function(x){return x.id===b.dataset.rcpay})[0];if(f)toast(payRec(f))}});
+  document.querySelectorAll("[data-rcnext]").forEach(function(b){b.onclick=function(){var f=S.rec.filter(function(x){return x.id===b.dataset.rcnext})[0];if(f)toast(payRec(f,1))}});
   document.querySelectorAll("[data-rdel]").forEach(function(b){b.onclick=function(){S.raises=S.raises.filter(function(r){return r.id!==b.dataset.rdel});save();toast("✓ 已刪除調薪紀錄");renderAll()}});
   document.querySelectorAll("[data-rate]").forEach(function(i){i.onchange=function(){S.rates=S.rates||{};S.rates[i.dataset.rate]=+i.value>0?+i.value:DR[i.dataset.rate];save();renderAll()}});
   document.querySelectorAll("[data-adel]").forEach(function(b){b.onclick=function(){S.accts=S.accts.filter(function(x){return x.id!==b.dataset.adel});save();toast("✓ 已刪除帳戶");renderAll()}});
@@ -346,7 +361,7 @@ function setTab(t){
   document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
 }
 function renderAll(){
-  autoFixed();applyTheme();
+  autoFixed();autoRec();applyTheme();
   $("ml").textContent=view.replace("-","年")+"月";
   renderHome();renderLog();renderSet();renderHelp();renderNews();checkAlerts();foldify();updDot();
 }
@@ -355,8 +370,8 @@ $("pm").onclick=function(){view=shift(view,-1);renderAll()};
 $("nm").onclick=function(){view=shift(view,1);renderAll()};
 $("set").addEventListener("change",function(e){if(e.target.type==="file")return;toast("✓ 已儲存")});
 renderAll();
-setInterval(function(){if(autoFixed())renderAll();else checkAlerts()},60000);
-document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoFixed())renderAll();else checkAlerts()}});
+setInterval(function(){if(autoFixed()|autoRec())renderAll();else checkAlerts()},60000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden){if(autoFixed()|autoRec())renderAll();else checkAlerts()}});
 })();
 </script>
 </body>
